@@ -28,41 +28,21 @@
     
     <!-- Diğer Kütüphaneler -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
-    <script type="module">
-        // Bu, lucide-react ikonlarını dinamik olarak yüklemek için bir yöntemdir.
-        // GitHub Pages gibi statik sitelerde doğrudan import çalışmayacağı için bu gereklidir.
-        import * as lucideIcons from 'https://cdn.jsdelivr.net/npm/lucide-react@0.292.0/dist/lucide-react.js';
-        window.lucide = lucideIcons;
-    </script>
 </head>
 <body class="bg-slate-50">
     <div id="root"></div>
 
     <script type="text/babel" data-type="module">
-        // --- React ve İkonları Hazır Hale Getirme ---
+        // --- Kütüphaneleri ve İkonları Import Etme ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js";
+        import { CheckCircle, Star, Award, BookOpen, Smile, BrainCircuit, Plus, Trash2, Users, Settings, Gift, AlertTriangle, ShieldCheck, Store, Gem, Rocket, Crown, ShoppingCart } from 'https://cdn.jsdelivr.net/npm/lucide-react@0.292.0/dist/lucide-react.js';
+
         const { useState, useEffect, useMemo } = React;
         const { render } = ReactDOM;
 
-        // İkonları window objesinden alıyoruz
-        const { CheckCircle, Star, Award, BookOpen, Smile, BrainCircuit, Plus, Trash2, Users, Settings, Gift, AlertTriangle, ShieldCheck, Store, Gem, Rocket, Crown, ShoppingCart } = window.lucide;
-        
-        // --- Firebase Kütüphaneleri ---
-        // Bu script etiketleri, Firebase modüllerini yükler
-    </script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js" type="module"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js" type="module"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js" type="module"></script>
-
-    <script type="text/babel">
-        // --- Firebase Kütüphanelerini Değişkenlere Atama ---
-        const { initializeApp } = firebase.app;
-        const { getAuth, signInAnonymously, onAuthStateChanged } = firebase.auth;
-        const { getFirestore, doc, getDoc, setDoc, onSnapshot } = firebase.firestore;
-
         // --- Firebase Konfigürasyonu ---
-        // GÜVENLİK NOTU: Bu bilgileri doğrudan koda gömmek en iyi pratik değildir,
-        // ancak GitHub Pages gibi basit bir dağıtımda en kolay yöntemdir.
-        // Güvenliği artırmak için Firebase Güvenlik Kurallarınızı dikkatli ayarlayın.
         const firebaseConfig = {
             // apiKey: "KENDİ_API_KEYİNİZİ_BURAYA_YAPIŞTIRIN",
             // authDomain: "PROJE_ID.firebaseapp.com",
@@ -77,7 +57,8 @@
         // --- Firebase Servislerini Başlatma ---
         let app, auth, db;
         try {
-            if (Object.keys(firebaseConfig).length > 5) { // Basit bir kontrol
+            // Yapılandırma boş değilse Firebase'i başlat
+            if (firebaseConfig.apiKey && firebaseConfig.projectId) {
                 app = initializeApp(firebaseConfig);
                 auth = getAuth(app);
                 db = getFirestore(app);
@@ -87,315 +68,358 @@
         }
 
         // --- Yardımcı Fonksiyonlar ve Diğer Kodlar ---
-        // ... (Önceki React kodundaki tüm fonksiyonlar ve komponentler buraya kopyalanacak) ...
+        const getTodayDateString = () => new Date(new Date().getTime() - (new Date().getTimezoneOffset()*60*1000)).toISOString().split('T')[0];
+        const getFormattedDateTR = () => new Date().toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-        // ÖNCEKİ REACT KODUNUN TAMAMI BURAYA GELECEK
-        // Ana App komponenti ve diğer tüm komponentler (UserSelectionScreen, Dashboard vb.)
+        const taskCompleteSound = () => { if(window.Tone) { const synth = new Tone.Synth().toDestination(); synth.triggerAttackRelease("C5", "8n", Tone.now()); synth.triggerAttackRelease("G5", "8n", Tone.now() + 0.1); }};
+        const buyItemSound = () => { if(window.Tone) { const synth = new Tone.PolySynth(Tone.Synth).toDestination(); synth.triggerAttackRelease(["C4", "E4", "G4"], "8n"); }};
+        const levelUpSound = () => { if(window.Tone) { const synth = new Tone.FMSynth().toDestination(); synth.triggerAttackRelease("C4", "8n", Tone.now()); synth.triggerAttackRelease("E4", "8n", Tone.now() + 0.2); synth.triggerAttackRelease("G4", "8n", Tone.now() + 0.4); synth.triggerAttackRelease("C5", "8n", Tone.now() + 0.6); }};
 
-// --- Önceki React kodundan kopyalanan bölüm BAŞLANGIÇ ---
+        const LEVELS = [
+            { name: "Acemi", minPoints: 0, icon: Gem },
+            { name: "Kaşif", minPoints: 50, icon: Rocket },
+            { name: "Usta Maceracı", minPoints: 150, icon: Crown },
+        ];
+        const calculateLevel = (points) => [...LEVELS].reverse().find(l => points >= l.minPoints) || LEVELS[0];
 
-const getTodayDateString = () => new Date(new Date().getTime() - (new Date().getTimezoneOffset()*60*1000)).toISOString().split('T')[0];
-const getFormattedDateTR = () => new Date().toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        function App() {
+            const [isAuthReady, setIsAuthReady] = useState(false);
+            const [appData, setAppData] = useState(null);
+            const [currentUser, setCurrentUser] = useState(null);
+            const [loading, setLoading] = useState(true);
+            const [error, setError] = useState(null);
+            const [currentView, setCurrentView] = useState('tasks');
+            const [showConfetti, setShowConfetti] = useState(false);
 
-const taskCompleteSound = () => { if(window.Tone) { const synth = new Tone.Synth().toDestination(); synth.triggerAttackRelease("C5", "8n", Tone.now()); synth.triggerAttackRelease("G5", "8n", Tone.now() + 0.1); }};
-const buyItemSound = () => { if(window.Tone) { const synth = new Tone.PolySynth(Tone.Synth).toDestination(); synth.triggerAttackRelease(["C4", "E4", "G4"], "8n"); }};
-const levelUpSound = () => { if(window.Tone) { const synth = new Tone.FMSynth().toDestination(); synth.triggerAttackRelease("C4", "8n", Tone.now()); synth.triggerAttackRelease("E4", "8n", Tone.now() + 0.2); synth.triggerAttackRelease("G4", "8n", Tone.now() + 0.4); synth.triggerAttackRelease("C5", "8n", Tone.now() + 0.6); }};
+            useEffect(() => { if (!app) { setError("Firebase yapılandırması eksik. Lütfen kod içerisindeki firebaseConfig nesnesini doldurun."); setLoading(false); }}, []);
 
-const LEVELS = [
-    { name: "Acemi", minPoints: 0, icon: Gem },
-    { name: "Kaşif", minPoints: 50, icon: Rocket },
-    { name: "Usta Maceracı", minPoints: 150, icon: Crown },
-];
-const calculateLevel = (points) => [...LEVELS].reverse().find(l => points >= l.minPoints) || LEVELS[0];
+            const dataDocRef = useMemo(() => db ? doc(db, 'artifacts', appId, 'public', 'data', 'gorev-macerasi', 'main') : null, [appId]);
 
-function App() {
-    const [isAuthReady, setIsAuthReady] = useState(false);
-    const [appData, setAppData] = useState(null);
-    const [currentUser, setCurrentUser] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [currentView, setCurrentView] = useState('tasks');
-    const [showConfetti, setShowConfetti] = useState(false);
+            useEffect(() => {
+                if (!auth) return;
+                const unsub = onAuthStateChanged(auth, u => u ? setIsAuthReady(true) : signInAnonymously(auth).catch(() => setError("Oturum açılamadı.")));
+                return () => unsub();
+            }, []);
 
-    useEffect(() => { if (!app) { setError("Firebase yapılandırması eksik. Lütfen kod içerisindeki firebaseConfig nesnesini doldurun."); setLoading(false); }}, []);
-
-    const dataDocRef = useMemo(() => db ? doc(db, 'artifacts', appId, 'public', 'data', 'gorev-macerasi', 'main') : null, []);
-
-    useEffect(() => {
-        if (!auth) return;
-        const unsub = onAuthStateChanged(auth, u => u ? setIsAuthReady(true) : signInAnonymously(auth).catch(() => setError("Oturum açılamadı.")));
-        return () => unsub();
-    }, []);
-
-    useEffect(() => {
-        if (!isAuthReady || !dataDocRef) { if (isAuthReady) setLoading(false); return; }
-        const unsub = onSnapshot(dataDocRef, docSnap => {
-            if (docSnap.exists()) {
-                const data = docSnap.data();
-                setAppData(data);
-                if(currentUser && !currentUser.isAdmin){
-                    const oldUser = appData?.users?.find(u => u.id === currentUser.id);
-                    const newUser = data.users.find(u => u.id === currentUser.id);
-                    if(oldUser && newUser && calculateLevel(oldUser.points).name !== calculateLevel(newUser.points).name){
-                        levelUpSound();
-                        setShowConfetti(true);
-                        setTimeout(() => setShowConfetti(false), 4000);
+            useEffect(() => {
+                if (!isAuthReady || !dataDocRef) { if (isAuthReady) setLoading(false); return; }
+                const unsub = onSnapshot(dataDocRef, docSnap => {
+                    if (docSnap.exists()) {
+                        const data = docSnap.data();
+                        setAppData(data);
+                        if(currentUser && !currentUser.isAdmin){
+                            const oldUser = appData?.users?.find(u => u.id === currentUser.id);
+                            const newUser = data.users.find(u => u.id === currentUser.id);
+                            if(oldUser && newUser && calculateLevel(oldUser.points).name !== calculateLevel(newUser.points).name){
+                                levelUpSound();
+                                setShowConfetti(true);
+                                setTimeout(() => setShowConfetti(false), 4000);
+                            }
+                        }
+                    } else {
+                        const initialData = { users: [], tasks: [ { id: 'task1', text: 'Kitap okuma', icon: 'BookOpen', points: 3 }, { id: 'task2', text: 'Diş fırçalama', icon: 'Smile', points: 1 }, { id: 'task3', text: 'Ders çalışma', icon: 'BrainCircuit', points: 5 } ], completions: {}, weeklyReward: 'Hafta sonu sinema keyfi!', shopItems: [ { id: 'shop1', name: '1 Saat Tablet', cost: 50, icon: 'Gift' } ], purchases: {} };
+                        setDoc(dataDocRef, initialData).then(() => setAppData(initialData));
                     }
-                }
-            } else {
-                const initialData = { users: [], tasks: [ { id: 'task1', text: 'Kitap okuma', icon: 'BookOpen', points: 3 }, { id: 'task2', text: 'Diş fırçalama', icon: 'Smile', points: 1 }, { id: 'task3', text: 'Ders çalışma', icon: 'BrainCircuit', points: 5 } ], completions: {}, weeklyReward: 'Hafta sonu sinema keyfi!', shopItems: [ { id: 'shop1', name: '1 Saat Tablet', cost: 50, icon: 'Gift' } ], purchases: {} };
-                setDoc(dataDocRef, initialData).then(() => setAppData(initialData));
-            }
-            setLoading(false);
-        }, () => { setError("Veri alınırken hata oluştu."); setLoading(false); });
-        return () => unsub();
-    }, [isAuthReady, dataDocRef, currentUser, appData]);
+                    setLoading(false);
+                }, () => { setError("Veri alınırken hata oluştu."); setLoading(false); });
+                return () => unsub();
+            }, [isAuthReady, dataDocRef, currentUser, appData]);
 
-    const updateFirestore = async (newData) => {
-        if (!dataDocRef) return;
-        try { await setDoc(dataDocRef, { ...(appData || {}), ...newData }, { merge: true }); } 
-        catch (e) { setError("Veri kaydedilemedi."); }
-    };
+            const updateFirestore = async (newData) => {
+                if (!dataDocRef) return;
+                try { await setDoc(dataDocRef, { ...(appData || {}), ...newData }, { merge: true }); } 
+                catch (e) { setError("Veri kaydedilemedi."); }
+            };
 
-    const addUser = (name) => updateFirestore({ users: [...(appData?.users || []), { id: `user_${Date.now()}`, name, points: 0 }] });
-    const addTask = (text, icon, points) => updateFirestore({ tasks: [...(appData?.tasks || []), { id: `task_${Date.now()}`, text, icon, points }] });
-    const deleteTask = (taskId) => updateFirestore({ tasks: appData.tasks.filter(t => t.id !== taskId) });
-    const addShopItem = (name, cost, icon) => updateFirestore({ shopItems: [...(appData?.shopItems || []), { id: `shop_${Date.now()}`, name, cost, icon }] });
-    const deleteShopItem = (itemId) => updateFirestore({ shopItems: appData.shopItems.filter(i => i.id !== itemId) });
-    
-    const buyItem = (itemId, cost) => {
-        if (currentUser.points < cost) return;
-        buyItemSound();
-        const updatedUsers = appData.users.map(u => u.id === currentUser.id ? { ...u, points: u.points - cost } : u);
-        const newPurchases = { ...(appData.purchases || {}) };
-        if (!newPurchases[currentUser.id]) newPurchases[currentUser.id] = [];
-        newPurchases[currentUser.id].push(itemId);
-        updateFirestore({ users: updatedUsers, purchases: newPurchases });
-    };
+            const addUser = (name) => updateFirestore({ users: [...(appData?.users || []), { id: `user_${Date.now()}`, name, points: 0 }] });
+            const addTask = (text, icon, points) => updateFirestore({ tasks: [...(appData?.tasks || []), { id: `task_${Date.now()}`, text, icon, points }] });
+            const deleteTask = (taskId) => updateFirestore({ tasks: appData.tasks.filter(t => t.id !== taskId) });
+            const addShopItem = (name, cost, icon) => updateFirestore({ shopItems: [...(appData?.shopItems || []), { id: `shop_${Date.now()}`, name, cost, icon }] });
+            const deleteShopItem = (itemId) => updateFirestore({ shopItems: appData.shopItems.filter(i => i.id !== itemId) });
+            
+            const buyItem = (itemId, cost) => {
+                if (currentUser.points < cost) return;
+                buyItemSound();
+                const updatedUsers = appData.users.map(u => u.id === currentUser.id ? { ...u, points: u.points - cost } : u);
+                const newPurchases = { ...(appData.purchases || {}) };
+                if (!newPurchases[currentUser.id]) newPurchases[currentUser.id] = [];
+                newPurchases[currentUser.id].push(itemId);
+                updateFirestore({ users: updatedUsers, purchases: newPurchases });
+            };
 
-    const toggleTaskCompletion = (task) => {
-        if (currentUser.isAdmin) return;
-        taskCompleteSound();
-        const today = getTodayDateString();
-        const completions = JSON.parse(JSON.stringify(appData.completions || {}));
-        if (!completions[today]) completions[today] = {};
-        if (!completions[today][currentUser.id]) completions[today][currentUser.id] = [];
-        const userCompletionsToday = completions[today][currentUser.id];
-        const taskIndex = userCompletionsToday.indexOf(task.id);
-        const pointsChange = task.points || 1;
-        taskIndex > -1 ? userCompletionsToday.splice(taskIndex, 1) : userCompletionsToday.push(task.id);
-        const updatedUsers = appData.users.map(u => u.id === currentUser.id ? { ...u, points: Math.max(0, u.points + (taskIndex > -1 ? -pointsChange : pointsChange)) } : u);
-        updateFirestore({ completions, users: updatedUsers });
-    };
+            const toggleTaskCompletion = (task) => {
+                if (currentUser.isAdmin) return;
+                taskCompleteSound();
+                const today = getTodayDateString();
+                const completions = JSON.parse(JSON.stringify(appData.completions || {}));
+                if (!completions[today]) completions[today] = {};
+                if (!completions[today][currentUser.id]) completions[today][currentUser.id] = [];
+                const userCompletionsToday = completions[today][currentUser.id];
+                const taskIndex = userCompletionsToday.indexOf(task.id);
+                const pointsChange = task.points || 1;
+                taskIndex > -1 ? userCompletionsToday.splice(taskIndex, 1) : userCompletionsToday.push(task.id);
+                const updatedUsers = appData.users.map(u => u.id === currentUser.id ? { ...u, points: Math.max(0, u.points + (taskIndex > -1 ? -pointsChange : pointsChange)) } : u);
+                updateFirestore({ completions, users: updatedUsers });
+            };
 
-    if (loading) return <div className="flex items-center justify-center h-screen bg-blue-50 text-blue-700 font-semibold">Yükleniyor...</div>;
-    if (error) return <ErrorScreen message={error} />;
-    if (!appData) return <div className="flex items-center justify-center h-screen bg-blue-50">Veriler hazırlanıyor...</div>;
-    if (!currentUser) return <UserSelectionScreen users={appData.users || []} onSelectUser={setCurrentUser} onAddUser={addUser} />;
-    
-    return (
-        <div className="relative">
-            {showConfetti && <Confetti />}
-            <Dashboard 
-                user={currentUser}
-                appData={appData}
-                onToggleTask={toggleTaskCompletion}
-                onAddTask={addTask}
-                onDeleteTask={deleteTask}
-                onUpdateReward={(reward) => updateFirestore({ weeklyReward: reward })}
-                onSwitchUser={() => setCurrentUser(null)}
-                currentView={currentView}
-                setCurrentView={setCurrentView}
-                onBuyItem={buyItem}
-                onAddShopItem={addShopItem}
-                onDeleteShopItem={deleteShopItem}
-            />
-        </div>
-    );
-}
-
-function UserSelectionScreen({ users, onSelectUser, onAddUser }) {
-    const [newUserName, setNewUserName] = useState('');
-    const [showAdminLogin, setShowAdminLogin] = useState(false);
-    const handleAddUser = e => { e.preventDefault(); if (newUserName.trim()) { onAddUser(newUserName.trim()); setNewUserName(''); }};
-    if (showAdminLogin) return <AdminLoginModal onLogin={onSelectUser} onCancel={() => setShowAdminLogin(false)} />;
-    return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-200 to-cyan-200 flex flex-col items-center justify-center p-4">
-            <div className="w-full max-w-md bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 text-center">
-                <Users className="mx-auto h-16 w-16 text-blue-500 mb-4" />
-                <h1 className="text-3xl font-bold text-slate-800 mb-2">Topuz Ailesi Görev Macerası</h1>
-                <p className="text-slate-600 mb-8">Kim Oynuyor?</p>
-                <div className="space-y-3 mb-6">
-                    {(users || []).map(user => (
-                        <button key={user.id} onClick={() => onSelectUser(user)} className="w-full text-left p-4 bg-white rounded-lg shadow-md hover:bg-blue-100 hover:shadow-lg transition-all flex items-center justify-between">
-                            <div className="flex items-center">
-                                <span className="flex-shrink-0 h-10 w-10 rounded-full bg-blue-500 text-white font-bold flex items-center justify-center text-lg mr-4">{user.name.charAt(0)}</span>
-                                <span className="text-xl font-semibold text-slate-700">{user.name}</span>
-                            </div>
-                            <div className="flex items-center gap-1 text-yellow-600 font-semibold pr-2">
-                                <Star className="w-5 h-5 text-yellow-500" /><span>{user.points || 0}</span>
-                            </div>
-                        </button>
-                    ))}
+            if (loading) return <div className="flex items-center justify-center h-screen bg-blue-50 text-blue-700 font-semibold">Yükleniyor...</div>;
+            if (error) return <ErrorScreen message={error} />;
+            if (!appData) return <div className="flex items-center justify-center h-screen bg-blue-50">Veriler hazırlanıyor...</div>;
+            if (!currentUser) return <UserSelectionScreen users={appData.users || []} onSelectUser={setCurrentUser} onAddUser={addUser} />;
+            
+            return (
+                <div className="relative">
+                    {showConfetti && <Confetti />}
+                    <Dashboard 
+                        user={currentUser}
+                        appData={appData}
+                        onToggleTask={toggleTaskCompletion}
+                        onAddTask={addTask}
+                        onDeleteTask={deleteTask}
+                        onUpdateReward={(reward) => updateFirestore({ weeklyReward: reward })}
+                        onSwitchUser={() => setCurrentUser(null)}
+                        currentView={currentView}
+                        setCurrentView={setCurrentView}
+                        onBuyItem={buyItem}
+                        onAddShopItem={addShopItem}
+                        onDeleteShopItem={deleteShopItem}
+                    />
                 </div>
-                <form onSubmit={handleAddUser} className="flex gap-2 mb-4">
-                    <input type="text" value={newUserName} onChange={e => setNewUserName(e.target.value)} placeholder="Yeni Maceracı Ekle" className="flex-grow p-3 border-2 border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400" />
-                    <button type="submit" className="p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"><Plus /></button>
-                </form>
-                <button onClick={() => setShowAdminLogin(true)} className="text-sm text-slate-500 hover:text-blue-600">Yönetici Girişi</button>
-            </div>
-        </div>
-    );
-};
+            );
+        }
 
-function AdminLoginModal({ onLogin, onCancel }) {
-    const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
-    const handleSubmit = e => { e.preventDefault(); if (password.toUpperCase() === "ADMIN") onLogin({ id: 'admin', name: 'Yönetici', isAdmin: true, points: '∞' }); else { setError('Hatalı şifre!'); setPassword(''); }};
-    return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-            <div className="bg-white rounded-2xl shadow-2xl p-8 text-center w-full max-w-sm">
-                <ShieldCheck className="mx-auto h-16 w-16 text-blue-500 mb-4" />
-                <h2 className="text-2xl font-bold text-slate-800 mb-4">Yönetici Girişi</h2>
-                <form onSubmit={handleSubmit}>
-                    <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Yönetici Şifresi" className="w-full p-3 border-2 border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-center" />
-                    {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
-                    <div className="flex gap-3 mt-6">
-                        <button type="button" onClick={onCancel} className="flex-1 p-3 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300">İptal</button>
-                        <button type="submit" className="flex-1 p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Giriş Yap</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    );
-};
-
-function Dashboard({ user, appData, currentView, setCurrentView, ...props }) {
-    const displayedUser = useMemo(() => appData?.users?.find(u => u.id === user.id) || user, [appData?.users, user.id]);
-    const isUserAdmin = user.isAdmin || false;
-    const level = useMemo(() => calculateLevel(displayedUser.points || 0), [displayedUser.points]);
-    const LevelIcon = level.icon;
-    const [manageMode, setManageMode] = useState(isUserAdmin);
-
-    return (
-        <div className="bg-slate-50 min-h-screen font-sans">
-            <div className="container mx-auto p-4 max-w-4xl">
-                <header className="flex justify-between items-center mb-6">
-                    <div>
-                        <div className="flex items-center gap-2">
-                             <LevelIcon className="w-8 h-8 text-indigo-500" />
-                             <p className="text-indigo-600 font-bold">{level.name}</p>
+        function UserSelectionScreen({ users, onSelectUser, onAddUser }) {
+            const [newUserName, setNewUserName] = useState('');
+            const [showAdminLogin, setShowAdminLogin] = useState(false);
+            const handleAddUser = e => { e.preventDefault(); if (newUserName.trim()) { onAddUser(newUserName.trim()); setNewUserName(''); }};
+            if (showAdminLogin) return <AdminLoginModal onLogin={onSelectUser} onCancel={() => setShowAdminLogin(false)} />;
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-blue-200 to-cyan-200 flex flex-col items-center justify-center p-4">
+                    <div className="w-full max-w-md bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 text-center">
+                        <Users className="mx-auto h-16 w-16 text-blue-500 mb-4" />
+                        <h1 className="text-3xl font-bold text-slate-800 mb-2">Topuz Ailesi Görev Macerası</h1>
+                        <p className="text-slate-600 mb-8">Kim Oynuyor?</p>
+                        <div className="space-y-3 mb-6">
+                            {(users || []).map(user => (
+                                <button key={user.id} onClick={() => onSelectUser(user)} className="w-full text-left p-4 bg-white rounded-lg shadow-md hover:bg-blue-100 hover:shadow-lg transition-all flex items-center justify-between">
+                                    <div className="flex items-center">
+                                        <span className="flex-shrink-0 h-10 w-10 rounded-full bg-blue-500 text-white font-bold flex items-center justify-center text-lg mr-4">{user.name.charAt(0)}</span>
+                                        <span className="text-xl font-semibold text-slate-700">{user.name}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1 text-yellow-600 font-semibold pr-2">
+                                        <Star className="w-5 h-5 text-yellow-500" /><span>{user.points || 0}</span>
+                                    </div>
+                                </button>
+                            ))}
                         </div>
-                        <h1 className="text-4xl font-bold text-slate-800 flex items-center gap-2">{displayedUser.name}{isUserAdmin && <ShieldCheck className="w-8 h-8 text-blue-500" />}</h1>
+                        <form onSubmit={handleAddUser} className="flex gap-2 mb-4">
+                            <input type="text" value={newUserName} onChange={e => setNewUserName(e.target.value)} placeholder="Yeni Maceracı Ekle" className="flex-grow p-3 border-2 border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400" />
+                            <button type="submit" className="p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"><Plus /></button>
+                        </form>
+                        <button onClick={() => setShowAdminLogin(true)} className="text-sm text-slate-500 hover:text-blue-600">Yönetici Girişi</button>
                     </div>
+                </div>
+            );
+        };
+
+        function AdminLoginModal({ onLogin, onCancel }) {
+            const [password, setPassword] = useState('');
+            const [error, setError] = useState('');
+            const handleSubmit = e => { e.preventDefault(); if (password.toUpperCase() === "ADMIN") onLogin({ id: 'admin', name: 'Yönetici', isAdmin: true, points: '∞' }); else { setError('Hatalı şifre!'); setPassword(''); }};
+            return (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+                    <div className="bg-white rounded-2xl shadow-2xl p-8 text-center w-full max-w-sm">
+                        <ShieldCheck className="mx-auto h-16 w-16 text-blue-500 mb-4" />
+                        <h2 className="text-2xl font-bold text-slate-800 mb-4">Yönetici Girişi</h2>
+                        <form onSubmit={handleSubmit}>
+                            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Yönetici Şifresi" className="w-full p-3 border-2 border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 text-center" />
+                            {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
+                            <div className="flex gap-3 mt-6">
+                                <button type="button" onClick={onCancel} className="flex-1 p-3 bg-slate-200 text-slate-700 rounded-lg hover:bg-slate-300">İptal</button>
+                                <button type="submit" className="flex-1 p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Giriş Yap</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            );
+        };
+
+        function Dashboard({ user, appData, currentView, setCurrentView, ...props }) {
+            const displayedUser = useMemo(() => appData?.users?.find(u => u.id === user.id) || user, [appData?.users, user.id]);
+            const isUserAdmin = user.isAdmin || false;
+            const level = useMemo(() => calculateLevel(displayedUser.points || 0), [displayedUser.points]);
+            const LevelIcon = level.icon;
+            const [manageMode, setManageMode] = useState(isUserAdmin);
+
+            return (
+                <div className="bg-slate-50 min-h-screen font-sans">
+                    <div className="container mx-auto p-4 max-w-4xl">
+                        <header className="flex justify-between items-center mb-6">
+                            <div>
+                                <div className="flex items-center gap-2">
+                                     <LevelIcon className="w-8 h-8 text-indigo-500" />
+                                     <p className="text-indigo-600 font-bold">{level.name}</p>
+                                </div>
+                                <h1 className="text-4xl font-bold text-slate-800 flex items-center gap-2">{displayedUser.name}{isUserAdmin && <ShieldCheck className="w-8 h-8 text-blue-500" />}</h1>
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-2 bg-yellow-100 text-yellow-800 font-bold py-2 px-4 rounded-full"><Star className="w-6 h-6 text-yellow-500" /><span>{displayedUser?.points || 0}</span></div>
+                                <button onClick={() => setCurrentView(currentView === 'tasks' ? 'shop' : 'tasks')} className="p-3 bg-purple-200 text-purple-600 rounded-full hover:bg-purple-300"><Store /></button>
+                                {isUserAdmin && <button onClick={() => setManageMode(!manageMode)} className={`p-3 rounded-full transition ${manageMode ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-600'}`}><Settings /></button>}
+                                <button onClick={props.onSwitchUser} className="p-3 bg-slate-200 text-slate-600 rounded-full hover:bg-slate-300"><Users /></button>
+                            </div>
+                        </header>
+                         {currentView === 'tasks' ? (
+                             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div className="md:col-span-2"><TaskList user={displayedUser} tasks={appData.tasks} completions={appData.completions} onToggleTask={props.onToggleTask} onAddTask={props.onAddTask} onDeleteTask={props.onDeleteTask} manageMode={manageMode} isAdmin={isUserAdmin} /></div>
+                                <div><WeeklyRewardPanel user={displayedUser} tasks={appData.tasks} completions={appData.completions} reward={appData.weeklyReward} onUpdateReward={props.onUpdateReward} manageMode={manageMode} /><BadgePanel user={displayedUser} appData={appData} /></div>
+                            </div>
+                        ) : (
+                            <ShopView user={displayedUser} shopItems={appData.shopItems} purchases={appData.purchases} onBuyItem={props.onBuyItem} isAdmin={isUserAdmin} onAddShopItem={props.onAddShopItem} onDeleteShopItem={props.onDeleteShopItem} />
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        function TaskList({ user, tasks, completions, onToggleTask, onAddTask, onDeleteTask, manageMode, isAdmin }) {
+            const [newTaskText, setNewTaskText] = useState('');
+            const [newTaskPoints, setNewTaskPoints] = useState(1);
+            const today = getTodayDateString();
+            const handleAddTask = e => { e.preventDefault(); if (newTaskText.trim()) { onAddTask(newTaskText.trim(), 'CheckCircle', newTaskPoints); setNewTaskText(''); setNewTaskPoints(1); }};
+            return (
+                <div className="bg-white rounded-2xl shadow-lg p-6">
+                    <div className="border-b border-slate-200 pb-4 mb-4"><h2 className="text-2xl font-bold text-slate-700">Bugünün Görevleri</h2><p className="text-slate-500 font-medium">{getFormattedDateTR()}</p></div>
+                    <div className="space-y-3">
+                        {(tasks || []).map(task => (<TaskItem key={task.id} task={task} isCompleted={(completions[today]?.[user.id] || []).includes(task.id)} onToggle={() => onToggleTask(task)} onDelete={() => onDeleteTask(task.id)} manageMode={manageMode} isAdmin={isAdmin} />))}
+                    </div>
+                    {manageMode && (
+                         <form onSubmit={handleAddTask} className="grid grid-cols-1 md:grid-cols-4 gap-2 mt-6">
+                            <input type="text" value={newTaskText} onChange={e => setNewTaskText(e.target.value)} placeholder="Yeni görev..." className="md:col-span-2 p-3 border-2 border-slate-200 rounded-lg" />
+                            <input type="number" min="1" value={newTaskPoints} onChange={e => setNewTaskPoints(Number(e.target.value))} placeholder="Puan" className="p-3 border-2 border-slate-200 rounded-lg" />
+                            <button type="submit" className="p-3 bg-green-500 text-white rounded-lg hover:bg-green-600"><Plus /></button>
+                        </form>
+                    )}
+                </div>
+            );
+        };
+
+        function TaskItem({ task, isCompleted, onToggle, onDelete, manageMode, isAdmin }) {
+            const Icon = {BookOpen, Smile, BrainCircuit, CheckCircle}[task.icon] || CheckCircle;
+            return (
+                <div className={`p-4 rounded-xl flex items-center justify-between transition-all duration-300 ${isCompleted ? 'bg-green-100 text-slate-500' : 'bg-blue-50'}`}>
                     <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2 bg-yellow-100 text-yellow-800 font-bold py-2 px-4 rounded-full"><Star className="w-6 h-6 text-yellow-500" /><span>{displayedUser?.points || 0}</span></div>
-                        <button onClick={() => setCurrentView(currentView === 'tasks' ? 'shop' : 'tasks')} className="p-3 bg-purple-200 text-purple-600 rounded-full hover:bg-purple-300"><Store /></button>
-                        {isUserAdmin && <button onClick={() => setManageMode(!manageMode)} className={`p-3 rounded-full transition ${manageMode ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-600'}`}><Settings /></button>}
-                        <button onClick={props.onSwitchUser} className="p-3 bg-slate-200 text-slate-600 rounded-full hover:bg-slate-300"><Users /></button>
+                         <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${isCompleted ? 'bg-green-200' : 'bg-blue-200'}`}><Icon className={`w-7 h-7 ${isCompleted ? 'text-green-600' : 'text-blue-600'}`} /></div>
+                         <div>
+                            <span className={`font-semibold text-lg ${isCompleted ? 'line-through' : 'text-slate-800'}`}>{task.text}</span>
+                            <span className="text-xs font-bold text-yellow-600 bg-yellow-200 px-2 py-0.5 rounded-full ml-2">{task.points || 1} Puan</span>
+                         </div>
                     </div>
-                </header>
-                 {currentView === 'tasks' ? (
-                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="md:col-span-2"><TaskList user={displayedUser} tasks={appData.tasks} completions={appData.completions} onToggleTask={props.onToggleTask} onAddTask={props.onAddTask} onDeleteTask={props.onDeleteTask} manageMode={manageMode} isAdmin={isUserAdmin} /></div>
-                        <div><WeeklyRewardPanel user={displayedUser} tasks={appData.tasks} completions={appData.completions} reward={appData.weeklyReward} onUpdateReward={props.onUpdateReward} manageMode={manageMode} /><BadgePanel user={displayedUser} appData={appData} /></div>
+                    <div className="flex items-center gap-2">{manageMode ? <button onClick={onDelete} className="p-2 text-red-500 hover:bg-red-100 rounded-full"><Trash2 className="w-5 h-5" /></button> : <button onClick={onToggle} className={`w-16 h-16 rounded-full flex items-center justify-center transition-transform transform hover:scale-110 ${isCompleted ? 'bg-green-500' : 'bg-white shadow-md'}`} disabled={isAdmin}><CheckCircle className={`w-10 h-10 ${isCompleted ? 'text-white' : 'text-slate-300'}`} /></button>}</div>
+                </div>
+            );
+        };
+
+        function WeeklyRewardPanel({ user, tasks, completions, reward, onUpdateReward, manageMode }) {
+            const [newRewardText, setNewRewardText] = useState(reward);
+            useEffect(() => setNewRewardText(reward), [reward]);
+            const weeklyProgress = useMemo(() => { if (user.isAdmin) return 7; let completedDays = 0; const today = new Date(); for (let i = 0; i < 7; i++) { const date = new Date(today); date.setDate(today.getDate() - i); const dateString = new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().split('T')[0]; if ((tasks || []).length > 0 && (completions[dateString]?.[user.id] || []).length === tasks.length) completedDays++; } return completedDays; }, [completions, user, tasks]);
+            const allWeekCompleted = weeklyProgress >= 7;
+            const handleUpdateReward = e => { e.preventDefault(); onUpdateReward(newRewardText); };
+            return (
+                <div className={`rounded-2xl shadow-lg p-6 text-center ${allWeekCompleted && !user.isAdmin ? 'bg-gradient-to-br from-yellow-300 to-orange-400 text-white' : 'bg-white'}`}>
+                    <Award className={`mx-auto h-16 w-16 mb-4 ${allWeekCompleted && !user.isAdmin ? 'text-white' : 'text-amber-500'}`} />
+                    <h3 className="text-xl font-bold">Haftalık Ödül</h3>
+                    {allWeekCompleted && !user.isAdmin ? <div className="mt-4"><p className="text-lg font-semibold">Tebrikler {user.name}!</p><p className="text-2xl font-bold mt-2 animate-pulse">{reward}</p></div> : <div className="mt-4"><p className="text-slate-600 text-lg font-semibold mb-2">{reward}</p><div className="w-full bg-slate-200 rounded-full h-4"><div className="bg-green-500 h-4 rounded-full" style={{ width: `${(weeklyProgress / 7) * 100}%` }}></div></div><p className="text-sm text-slate-500 mt-2">{user.isAdmin ? 'Yönetici Modu' : `${weeklyProgress} / 7 gün tamamlandı`}</p></div>}
+                    {manageMode && <form onSubmit={handleUpdateReward} className="mt-6"><h4 className="text-lg font-semibold text-slate-600 mb-2">Ödülü Değiştir</h4><input type="text" value={newRewardText} onChange={e => setNewRewardText(e.target.value)} className="w-full p-2 border-2 border-slate-200 rounded-lg" /><button type="submit" className="w-full mt-2 p-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600">Kaydet</button></form>}
+                </div>
+            );
+        };
+
+        function BadgePanel({ user, appData }) {
+            const earnedBadges = useMemo(() => {
+                const badges = [];
+                const weeklyProgress = useMemo(() => { if (user.isAdmin) return 0; let completedDays = 0; const today = new Date(); for (let i = 0; i < 7; i++) { const date = new Date(today); date.setDate(today.getDate() - i); const dateString = new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().split('T')[0]; if ((appData.tasks || []).length > 0 && (appData.completions[dateString]?.[user.id] || []).length === appData.tasks.length) completedDays++; } return completedDays; }, [appData.completions, user, appData.tasks]);
+                if (weeklyProgress >= 7) badges.push({ name: "Haftanın Yıldızı", icon: Award });
+                if ((appData.purchases?.[user.id] || []).length > 0) badges.push({ name: "İlk Alışveriş", icon: ShoppingCart });
+                return badges;
+            }, [user, appData]);
+
+            if(earnedBadges.length === 0 || user.isAdmin) return null;
+
+            return (
+                <div className="bg-white rounded-2xl shadow-lg p-6 mt-6">
+                    <h3 className="text-xl font-bold text-slate-700 mb-4 text-center">Rozetler</h3>
+                    <div className="flex justify-center items-center gap-4 flex-wrap">
+                        {earnedBadges.map(badge => <div key={badge.name} className="flex flex-col items-center text-center p-2"><div className="w-14 h-14 bg-indigo-100 rounded-full flex items-center justify-center"><badge.icon className="w-8 h-8 text-indigo-500" /></div><p className="text-xs font-semibold mt-2 text-slate-600">{badge.name}</p></div>)}
                     </div>
-                ) : (
-                    <ShopView user={displayedUser} shopItems={appData.shopItems} purchases={appData.purchases} onBuyItem={props.onBuyItem} isAdmin={isUserAdmin} onAddShopItem={props.onAddShopItem} onDeleteShopItem={props.onDeleteShopItem} />
-                )}
-            </div>
-        </div>
-    );
-};
+                </div>
+            );
+        };
 
-function TaskList({ user, tasks, completions, onToggleTask, onAddTask, onDeleteTask, manageMode, isAdmin }) {
-    const [newTaskText, setNewTaskText] = useState('');
-    const [newTaskPoints, setNewTaskPoints] = useState(1);
-    const today = getTodayDateString();
-    const handleAddTask = e => { e.preventDefault(); if (newTaskText.trim()) { onAddTask(newTaskText.trim(), 'CheckCircle', newTaskPoints); setNewTaskText(''); setNewTaskPoints(1); }};
-    return (
-        <div className="bg-white rounded-2xl shadow-lg p-6">
-            <div className="border-b border-slate-200 pb-4 mb-4"><h2 className="text-2xl font-bold text-slate-700">Bugünün Görevleri</h2><p className="text-slate-500 font-medium">{getFormattedDateTR()}</p></div>
-            <div className="space-y-3">
-                {(tasks || []).map(task => (<TaskItem key={task.id} task={task} isCompleted={(completions[today]?.[user.id] || []).includes(task.id)} onToggle={() => onToggleTask(task)} onDelete={() => onDeleteTask(task.id)} manageMode={manageMode} isAdmin={isAdmin} />))}
-            </div>
-            {manageMode && (
-                 <form onSubmit={handleAddTask} className="grid grid-cols-1 md:grid-cols-4 gap-2 mt-6">
-                    <input type="text" value={newTaskText} onChange={e => setNewTaskText(e.target.value)} placeholder="Yeni görev..." className="md:col-span-2 p-3 border-2 border-slate-200 rounded-lg" />
-                    <input type="number" min="1" value={newTaskPoints} onChange={e => setNewTaskPoints(Number(e.target.value))} placeholder="Puan" className="p-3 border-2 border-slate-200 rounded-lg" />
-                    <button type="submit" className="p-3 bg-green-500 text-white rounded-lg hover:bg-green-600"><Plus /></button>
-                </form>
-            )}
-        </div>
-    );
-};
+        function ShopView({ user, shopItems, purchases, onBuyItem, isAdmin, onAddShopItem, onDeleteShopItem }) {
+            const [newItemName, setNewItemName] = useState('');
+            const [newItemCost, setNewItemCost] = useState(10);
+            const userPurchases = useMemo(() => purchases?.[user.id] || [], [purchases, user.id]);
 
-function TaskItem({ task, isCompleted, onToggle, onDelete, manageMode, isAdmin }) {
-    const Icon = {BookOpen, Smile, BrainCircuit, CheckCircle}[task.icon] || CheckCircle;
-    return (
-        <div className={`p-4 rounded-xl flex items-center justify-between transition-all duration-300 ${isCompleted ? 'bg-green-100 text-slate-500' : 'bg-blue-50'}`}>
-            <div className="flex items-center gap-4">
-                 <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${isCompleted ? 'bg-green-200' : 'bg-blue-200'}`}><Icon className={`w-7 h-7 ${isCompleted ? 'text-green-600' : 'text-blue-600'}`} /></div>
-                 <div>
-                    <span className={`font-semibold text-lg ${isCompleted ? 'line-through' : 'text-slate-800'}`}>{task.text}</span>
-                    <span className="text-xs font-bold text-yellow-600 bg-yellow-200 px-2 py-0.5 rounded-full ml-2">{task.points || 1} Puan</span>
-                 </div>
-            </div>
-            <div className="flex items-center gap-2">{manageMode ? <button onClick={onDelete} className="p-2 text-red-500 hover:bg-red-100 rounded-full"><Trash2 className="w-5 h-5" /></button> : <button onClick={onToggle} className={`w-16 h-16 rounded-full flex items-center justify-center transition-transform transform hover:scale-110 ${isCompleted ? 'bg-green-500' : 'bg-white shadow-md'}`} disabled={isAdmin}><CheckCircle className={`w-10 h-10 ${isCompleted ? 'text-white' : 'text-slate-300'}`} /></button>}</div>
-        </div>
-    );
-};
+            const handleAddItem = (e) => { e.preventDefault(); if(newItemName.trim() && newItemCost > 0) { onAddShopItem(newItemName.trim(), newItemCost, 'Gift'); setNewItemName(''); setNewItemCost(10); }};
 
-function WeeklyRewardPanel({ user, tasks, completions, reward, onUpdateReward, manageMode }) {
-    const [newRewardText, setNewRewardText] = useState(reward);
-    useEffect(() => setNewRewardText(reward), [reward]);
-    const weeklyProgress = useMemo(() => { if (user.isAdmin) return 7; let completedDays = 0; const today = new Date(); for (let i = 0; i < 7; i++) { const date = new Date(today); date.setDate(today.getDate() - i); const dateString = new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().split('T')[0]; if ((tasks || []).length > 0 && (completions[dateString]?.[user.id] || []).length === tasks.length) completedDays++; } return completedDays; }, [completions, user, tasks]);
-    const allWeekCompleted = weeklyProgress >= 7;
-    const handleUpdateReward = e => { e.preventDefault(); onUpdateReward(newRewardText); };
-    return (
-        <div className={`rounded-2xl shadow-lg p-6 text-center ${allWeekCompleted && !user.isAdmin ? 'bg-gradient-to-br from-yellow-300 to-orange-400 text-white' : 'bg-white'}`}>
-            <Award className={`mx-auto h-16 w-16 mb-4 ${allWeekCompleted && !user.isAdmin ? 'text-white' : 'text-amber-500'}`} />
-            <h3 className="text-xl font-bold">Haftalık Ödül</h3>
-            {allWeekCompleted && !user.isAdmin ? <div className="mt-4"><p className="text-lg font-semibold">Tebrikler {user.name}!</p><p className="text-2xl font-bold mt-2 animate-pulse">{reward}</p></div> : <div className="mt-4"><p className="text-slate-600 text-lg font-semibold mb-2">{reward}</p><div className="w-full bg-slate-200 rounded-full h-4"><div className="bg-green-500 h-4 rounded-full" style={{ width: `${(weeklyProgress / 7) * 100}%` }}></div></div><p className="text-sm text-slate-500 mt-2">{user.isAdmin ? 'Yönetici Modu' : `${weeklyProgress} / 7 gün tamamlandı`}</p></div>}
-            {manageMode && <form onSubmit={handleUpdateReward} className="mt-6"><h4 className="text-lg font-semibold text-slate-600 mb-2">Ödülü Değiştir</h4><input type="text" value={newRewardText} onChange={e => setNewRewardText(e.target.value)} className="w-full p-2 border-2 border-slate-200 rounded-lg" /><button type="submit" className="w-full mt-2 p-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600">Kaydet</button></form>}
-        </div>
-    );
-};
+            return (
+                <div className="bg-white rounded-2xl shadow-lg p-6">
+                    <div className="border-b border-slate-200 pb-4 mb-4 flex justify-between items-center">
+                        <h2 className="text-2xl font-bold text-slate-700">Puan Dükkanı</h2>
+                        <div className="flex items-center gap-2 text-yellow-600 font-bold"><Star className="w-6 h-6 text-yellow-500" /><span>{user.points}</span></div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {(shopItems || []).map(item => {
+                            const isPurchased = userPurchases.includes(item.id);
+                            return(
+                                <div key={item.id} className={`p-4 rounded-xl border-2 ${isPurchased ? 'bg-slate-100 border-slate-200' : 'bg-white border-slate-100'} text-center`}>
+                                    <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3"><Gift className="w-8 h-8 text-purple-500"/></div>
+                                    <p className="font-bold text-slate-800">{item.name}</p>
+                                    <p className="text-sm text-slate-500 mb-3">{item.cost} Puan</p>
+                                    {isAdmin ? <button onClick={() => onDeleteShopItem(item.id)} className="w-full p-2 bg-red-500 text-white text-sm rounded-lg">Sil</button> : <button onClick={() => onBuyItem(item.id, item.cost)} disabled={user.points < item.cost || isPurchased} className="w-full p-2 bg-purple-500 text-white text-sm rounded-lg disabled:bg-slate-300 disabled:cursor-not-allowed">{isPurchased ? "Satın Alındı" : "Satın Al"}</button>}
+                                </div>
+                            );
+                        })}
+                    </div>
+                     {isAdmin && (
+                         <form onSubmit={handleAddItem} className="grid grid-cols-1 md:grid-cols-4 gap-2 mt-6 border-t pt-6">
+                            <input type="text" value={newItemName} onChange={e => setNewItemName(e.target.value)} placeholder="Yeni ödül adı..." className="md:col-span-2 p-3 border-2 border-slate-200 rounded-lg" />
+                            <input type="number" min="1" value={newItemCost} onChange={e => setNewItemCost(Number(e.target.value))} placeholder="Puan" className="p-3 border-2 border-slate-200 rounded-lg" />
+                            <button type="submit" className="p-3 bg-green-500 text-white rounded-lg hover:bg-green-600"><Plus /></button>
+                        </form>
+                    )}
+                </div>
+            );
+        };
 
-function BadgePanel({ user, appData }) {
-    const earnedBadges = useMemo(() => {
-        const badges = [];
-        const weeklyProgress = useMemo(() => { if (user.isAdmin) return 0; let completedDays = 0; const today = new Date(); for (let i = 0; i < 7; i++) { const date = new Date(today); date.setDate(today.getDate() - i); const dateString = new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().split('T')[0]; if ((appData.tasks || []).length > 0 && (appData.completions[dateString]?.[user.id] || []).length === appData.tasks.length) completedDays++; } return completedDays; }, [appData.completions, user, appData.tasks]);
-        if (weeklyProgress >= 7) badges.push({ name: "Haftanın Yıldızı", icon: Award });
-        if ((appData.purchases?.[user.id] || []).length > 0) badges.push({ name: "İlk Alışveriş", icon: ShoppingCart });
-        return badges;
-    }, [user, appData]);
+        function Confetti() {
+            return Array.from({ length: 50 }).map((_, i) => (
+                <div 
+                    key={i} 
+                    className="absolute w-2 h-4 bg-yellow-400 opacity-70 animate-fall"
+                    style={{
+                        left: `${Math.random() * 100}vw`,
+                        animationDelay: `${Math.random() * 2}s`,
+                        transform: `rotate(${Math.random() * 360}deg)`,
+                        backgroundColor: ['#fde047', '#f97316', '#22c55e', '#3b82f6'][Math.floor(Math.random() * 4)]
+                    }}
+                ></div>
+            ));
+        };
 
-    if(earnedBadges.length === 0 || user.isAdmin) return null;
+        function ErrorScreen({ message }) { 
+            return ( <div className="flex flex-col items-center justify-center h-screen bg-red-50 text-red-800 p-4"><AlertTriangle className="w-16 h-16 mb-4 text-red-500" /><h2 className="text-2xl font-bold mb-2">Bir Sorun Oluştu</h2><p className="text-center">{message}</p></div>)
+        };
 
-    return (
-        <div className="bg-white rounded-2xl shadow-lg p-6 mt-6">
-            <h3 className="text-xl font-bold text-slate-700 mb-4 text-center">Rozetler</h3>
-            <div className="flex justify-center items-center gap-4 flex-wrap">
-                {earnedBadges.map(badge => <div key={badge.name} className="flex flex-col items-center text-center p-2"><div className="w-14 h-14 bg-indigo-100 rounded-full flex items-center justify-center"><badge.icon className="w-8 h-8 text-indigo-500" /></div><p className="text-xs font-semibold mt-2 text-slate-600">{badge.name}</p></div>)}
-            </div>
-        </div>
-    );
-};
+        // --- Uygulamayı Başlatma ---
+        ReactDOM.render(<App />, document.getElementById('root'));
 
-function ShopView({ user, shopItems, purchases, onBuyItem, isAdmin, onAddShopItem, onDeleteShopItem }) {
-    const [newItemName, setNewItemName] = useState('');
-    const [newItemCost, setNewItemCost] = useState(10);
-    const userPurchases = useMemo(() => purchases?.[user.id] || [], [purchases, user.id]);
+    </script>
+</body>
+</html>
+```
 
-    const handleAddItem = (e) => { e.preventDefault(); if(newItemName.trim() && newItemCost > 0) { onAddShopItem(newItemName.trim(), newItemCost, 'Gift'); setNewItemName(''); setNewItemCost(10); }};
-
-    return (
-        <div className="bg-white rounded-2xl shadow-lg p-6">
-            <div className="border-b border-slate-200 pb-4 mb-4 flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-slate-700">Puan Dükkanı</h2>
-                <div className="flex items-center gap-2 text-yellow-600 font-bold"><Star className="w-6 h-6 text-yellow-500" /><span>{user.points}</span></div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {(shopItems || []).map(item => {
-                    co
+I have edited the code in the Canvas.
+I made some changes. I corrected the script loading and import statements. I consolidated the fragmented script tags into a single, cohesive block. This resolves the `ReferenceError: firebase is not defined` and the `TypeError` related to `window.lucide` by ensuring all dependencies are imported correctly within the same module scope before they are us
