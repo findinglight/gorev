@@ -1,49 +1,106 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
-import * as Tone from 'tone';
-import { CheckCircle, Star, Award, BookOpen, Smile, BrainCircuit, Plus, Trash2, Users, Settings, Gift, AlertTriangle, ShieldCheck, Store, Gem, Rocket, Crown, ShoppingCart } from 'lucide-react';
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Topuz Ailesi Görev Macerası</title>
+    
+    <!-- Stil Dosyaları -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        @keyframes fall {
+            0% { top: -10%; opacity: 1; }
+            100% { top: 110%; opacity: 0; }
+        }
+        .animate-fall {
+            animation: fall 3s linear infinite;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- React Kütüphaneleri -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel (JSX'i tarayıcıda çalıştırmak için) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Diğer Kütüphaneler -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    <script type="module">
+        // Bu, lucide-react ikonlarını dinamik olarak yüklemek için bir yöntemdir.
+        // GitHub Pages gibi statik sitelerde doğrudan import çalışmayacağı için bu gereklidir.
+        import * as lucideIcons from 'https://cdn.jsdelivr.net/npm/lucide-react@0.292.0/dist/lucide-react.js';
+        window.lucide = lucideIcons;
+    </script>
+</head>
+<body class="bg-slate-50">
+    <div id="root"></div>
 
-// --- Firebase Konfigürasyonu ---
-const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-topuz-ailesi-gorev-macerasi';
+    <script type="text/babel" data-type="module">
+        // --- React ve İkonları Hazır Hale Getirme ---
+        const { useState, useEffect, useMemo } = React;
+        const { render } = ReactDOM;
 
-// --- Firebase Servislerini Başlatma ---
-let app, auth, db;
-try {
-    if (Object.keys(firebaseConfig).length > 0) {
-        app = initializeApp(firebaseConfig);
-        auth = getAuth(app);
-        db = getFirestore(app);
-    }
-} catch (e) {
-    console.error("Firebase başlatma hatası:", e);
-}
+        // İkonları window objesinden alıyoruz
+        const { CheckCircle, Star, Award, BookOpen, Smile, BrainCircuit, Plus, Trash2, Users, Settings, Gift, AlertTriangle, ShieldCheck, Store, Gem, Rocket, Crown, ShoppingCart } = window.lucide;
+        
+        // --- Firebase Kütüphaneleri ---
+        // Bu script etiketleri, Firebase modüllerini yükler
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js" type="module"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth.js" type="module"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore.js" type="module"></script>
 
-// --- Yardımcı Fonksiyonlar ---
+    <script type="text/babel">
+        // --- Firebase Kütüphanelerini Değişkenlere Atama ---
+        const { initializeApp } = firebase.app;
+        const { getAuth, signInAnonymously, onAuthStateChanged } = firebase.auth;
+        const { getFirestore, doc, getDoc, setDoc, onSnapshot } = firebase.firestore;
+
+        // --- Firebase Konfigürasyonu ---
+        // GÜVENLİK NOTU: Bu bilgileri doğrudan koda gömmek en iyi pratik değildir,
+        // ancak GitHub Pages gibi basit bir dağıtımda en kolay yöntemdir.
+        // Güvenliği artırmak için Firebase Güvenlik Kurallarınızı dikkatli ayarlayın.
+        const firebaseConfig = {
+            // apiKey: "KENDİ_API_KEYİNİZİ_BURAYA_YAPIŞTIRIN",
+            // authDomain: "PROJE_ID.firebaseapp.com",
+            // projectId: "PROJE_ID",
+            // ...diğer bilgiler
+        };
+        const appId = 'default-topuz-ailesi-gorev-macerasi';
+        
+        // ÖNEMLİ: Gerçek bir dağıtım için yukarıdaki firebaseConfig nesnesini kendi 
+        // Firebase projenizin bilgileriyle doldurmanız gerekir.
+
+        // --- Firebase Servislerini Başlatma ---
+        let app, auth, db;
+        try {
+            if (Object.keys(firebaseConfig).length > 5) { // Basit bir kontrol
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+            }
+        } catch (e) {
+            console.error("Firebase başlatma hatası:", e);
+        }
+
+        // --- Yardımcı Fonksiyonlar ve Diğer Kodlar ---
+        // ... (Önceki React kodundaki tüm fonksiyonlar ve komponentler buraya kopyalanacak) ...
+
+        // ÖNCEKİ REACT KODUNUN TAMAMI BURAYA GELECEK
+        // Ana App komponenti ve diğer tüm komponentler (UserSelectionScreen, Dashboard vb.)
+
+// --- Önceki React kodundan kopyalanan bölüm BAŞLANGIÇ ---
+
 const getTodayDateString = () => new Date(new Date().getTime() - (new Date().getTimezoneOffset()*60*1000)).toISOString().split('T')[0];
 const getFormattedDateTR = () => new Date().toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-// --- Ses Efektleri ---
-const taskCompleteSound = () => {
-    const synth = new Tone.Synth().toDestination();
-    synth.triggerAttackRelease("C5", "8n", Tone.now());
-    synth.triggerAttackRelease("G5", "8n", Tone.now() + 0.1);
-}
-const buyItemSound = () => {
-    const synth = new Tone.PolySynth(Tone.Synth).toDestination();
-    synth.triggerAttackRelease(["C4", "E4", "G4"], "8n");
-}
-const levelUpSound = () => {
-    const synth = new Tone.FMSynth().toDestination();
-    synth.triggerAttackRelease("C4", "8n", Tone.now());
-    synth.triggerAttackRelease("E4", "8n", Tone.now() + 0.2);
-    synth.triggerAttackRelease("G4", "8n", Tone.now() + 0.4);
-    synth.triggerAttackRelease("C5", "8n", Tone.now() + 0.6);
-}
+const taskCompleteSound = () => { if(window.Tone) { const synth = new Tone.Synth().toDestination(); synth.triggerAttackRelease("C5", "8n", Tone.now()); synth.triggerAttackRelease("G5", "8n", Tone.now() + 0.1); }};
+const buyItemSound = () => { if(window.Tone) { const synth = new Tone.PolySynth(Tone.Synth).toDestination(); synth.triggerAttackRelease(["C4", "E4", "G4"], "8n"); }};
+const levelUpSound = () => { if(window.Tone) { const synth = new Tone.FMSynth().toDestination(); synth.triggerAttackRelease("C4", "8n", Tone.now()); synth.triggerAttackRelease("E4", "8n", Tone.now() + 0.2); synth.triggerAttackRelease("G4", "8n", Tone.now() + 0.4); synth.triggerAttackRelease("C5", "8n", Tone.now() + 0.6); }};
 
-// --- Seviye ve Rozet Sistemi ---
 const LEVELS = [
     { name: "Acemi", minPoints: 0, icon: Gem },
     { name: "Kaşif", minPoints: 50, icon: Rocket },
@@ -51,17 +108,16 @@ const LEVELS = [
 ];
 const calculateLevel = (points) => [...LEVELS].reverse().find(l => points >= l.minPoints) || LEVELS[0];
 
-// --- Ana Uygulama Komponenti ---
-export default function App() {
+function App() {
     const [isAuthReady, setIsAuthReady] = useState(false);
     const [appData, setAppData] = useState(null);
     const [currentUser, setCurrentUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [currentView, setCurrentView] = useState('tasks'); // 'tasks' or 'shop'
+    const [currentView, setCurrentView] = useState('tasks');
     const [showConfetti, setShowConfetti] = useState(false);
 
-    useEffect(() => { if (!app) { setError("Firebase yapılandırması bulunamadı."); setLoading(false); }}, []);
+    useEffect(() => { if (!app) { setError("Firebase yapılandırması eksik. Lütfen kod içerisindeki firebaseConfig nesnesini doldurun."); setLoading(false); }}, []);
 
     const dataDocRef = useMemo(() => db ? doc(db, 'artifacts', appId, 'public', 'data', 'gorev-macerasi', 'main') : null, []);
 
@@ -77,7 +133,6 @@ export default function App() {
             if (docSnap.exists()) {
                 const data = docSnap.data();
                 setAppData(data);
-                // Seviye atlama kontrolü
                 if(currentUser && !currentUser.isAdmin){
                     const oldUser = appData?.users?.find(u => u.id === currentUser.id);
                     const newUser = data.users.find(u => u.id === currentUser.id);
@@ -88,14 +143,7 @@ export default function App() {
                     }
                 }
             } else {
-                const initialData = {
-                    users: [],
-                    tasks: [ { id: 'task1', text: 'Kitap okuma', icon: 'BookOpen', points: 3 }, { id: 'task2', text: 'Diş fırçalama', icon: 'Smile', points: 1 }, { id: 'task3', text: 'Ders çalışma', icon: 'BrainCircuit', points: 5 } ],
-                    completions: {},
-                    weeklyReward: 'Hafta sonu sinema keyfi!',
-                    shopItems: [ { id: 'shop1', name: '1 Saat Tablet', cost: 50, icon: 'Gift' } ],
-                    purchases: {}
-                };
+                const initialData = { users: [], tasks: [ { id: 'task1', text: 'Kitap okuma', icon: 'BookOpen', points: 3 }, { id: 'task2', text: 'Diş fırçalama', icon: 'Smile', points: 1 }, { id: 'task3', text: 'Ders çalışma', icon: 'BrainCircuit', points: 5 } ], completions: {}, weeklyReward: 'Hafta sonu sinema keyfi!', shopItems: [ { id: 'shop1', name: '1 Saat Tablet', cost: 50, icon: 'Gift' } ], purchases: {} };
                 setDoc(dataDocRef, initialData).then(() => setAppData(initialData));
             }
             setLoading(false);
@@ -166,8 +214,7 @@ export default function App() {
     );
 }
 
-// --- Komponentler ---
-const UserSelectionScreen = ({ users, onSelectUser, onAddUser }) => {
+function UserSelectionScreen({ users, onSelectUser, onAddUser }) {
     const [newUserName, setNewUserName] = useState('');
     const [showAdminLogin, setShowAdminLogin] = useState(false);
     const handleAddUser = e => { e.preventDefault(); if (newUserName.trim()) { onAddUser(newUserName.trim()); setNewUserName(''); }};
@@ -201,10 +248,9 @@ const UserSelectionScreen = ({ users, onSelectUser, onAddUser }) => {
     );
 };
 
-const AdminLoginModal = ({ onLogin, onCancel }) => {
+function AdminLoginModal({ onLogin, onCancel }) {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
-    // DEĞİŞİKLİK: Şifre kontrolü büyük/küçük harfe duyarsız hale getirildi.
     const handleSubmit = e => { e.preventDefault(); if (password.toUpperCase() === "ADMIN") onLogin({ id: 'admin', name: 'Yönetici', isAdmin: true, points: '∞' }); else { setError('Hatalı şifre!'); setPassword(''); }};
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
@@ -224,12 +270,11 @@ const AdminLoginModal = ({ onLogin, onCancel }) => {
     );
 };
 
-const Dashboard = ({ user, appData, currentView, setCurrentView, ...props }) => {
+function Dashboard({ user, appData, currentView, setCurrentView, ...props }) {
     const displayedUser = useMemo(() => appData?.users?.find(u => u.id === user.id) || user, [appData?.users, user.id]);
     const isUserAdmin = user.isAdmin || false;
     const level = useMemo(() => calculateLevel(displayedUser.points || 0), [displayedUser.points]);
     const LevelIcon = level.icon;
-    // DEĞİŞİKLİK: Yönetici modu için state eklendi ve ayarlar butonu düzeltildi.
     const [manageMode, setManageMode] = useState(isUserAdmin);
 
     return (
@@ -263,7 +308,7 @@ const Dashboard = ({ user, appData, currentView, setCurrentView, ...props }) => 
     );
 };
 
-const TaskList = ({ user, tasks, completions, onToggleTask, onAddTask, onDeleteTask, manageMode, isAdmin }) => {
+function TaskList({ user, tasks, completions, onToggleTask, onAddTask, onDeleteTask, manageMode, isAdmin }) {
     const [newTaskText, setNewTaskText] = useState('');
     const [newTaskPoints, setNewTaskPoints] = useState(1);
     const today = getTodayDateString();
@@ -285,7 +330,7 @@ const TaskList = ({ user, tasks, completions, onToggleTask, onAddTask, onDeleteT
     );
 };
 
-const TaskItem = ({ task, isCompleted, onToggle, onDelete, manageMode, isAdmin }) => {
+function TaskItem({ task, isCompleted, onToggle, onDelete, manageMode, isAdmin }) {
     const Icon = {BookOpen, Smile, BrainCircuit, CheckCircle}[task.icon] || CheckCircle;
     return (
         <div className={`p-4 rounded-xl flex items-center justify-between transition-all duration-300 ${isCompleted ? 'bg-green-100 text-slate-500' : 'bg-blue-50'}`}>
@@ -301,7 +346,7 @@ const TaskItem = ({ task, isCompleted, onToggle, onDelete, manageMode, isAdmin }
     );
 };
 
-const WeeklyRewardPanel = ({ user, tasks, completions, reward, onUpdateReward, manageMode }) => {
+function WeeklyRewardPanel({ user, tasks, completions, reward, onUpdateReward, manageMode }) {
     const [newRewardText, setNewRewardText] = useState(reward);
     useEffect(() => setNewRewardText(reward), [reward]);
     const weeklyProgress = useMemo(() => { if (user.isAdmin) return 7; let completedDays = 0; const today = new Date(); for (let i = 0; i < 7; i++) { const date = new Date(today); date.setDate(today.getDate() - i); const dateString = new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().split('T')[0]; if ((tasks || []).length > 0 && (completions[dateString]?.[user.id] || []).length === tasks.length) completedDays++; } return completedDays; }, [completions, user, tasks]);
@@ -317,7 +362,7 @@ const WeeklyRewardPanel = ({ user, tasks, completions, reward, onUpdateReward, m
     );
 };
 
-const BadgePanel = ({ user, appData }) => {
+function BadgePanel({ user, appData }) {
     const earnedBadges = useMemo(() => {
         const badges = [];
         const weeklyProgress = useMemo(() => { if (user.isAdmin) return 0; let completedDays = 0; const today = new Date(); for (let i = 0; i < 7; i++) { const date = new Date(today); date.setDate(today.getDate() - i); const dateString = new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().split('T')[0]; if ((appData.tasks || []).length > 0 && (appData.completions[dateString]?.[user.id] || []).length === appData.tasks.length) completedDays++; } return completedDays; }, [appData.completions, user, appData.tasks]);
@@ -338,7 +383,7 @@ const BadgePanel = ({ user, appData }) => {
     );
 };
 
-const ShopView = ({ user, shopItems, purchases, onBuyItem, isAdmin, onAddShopItem, onDeleteShopItem }) => {
+function ShopView({ user, shopItems, purchases, onBuyItem, isAdmin, onAddShopItem, onDeleteShopItem }) {
     const [newItemName, setNewItemName] = useState('');
     const [newItemCost, setNewItemCost] = useState(10);
     const userPurchases = useMemo(() => purchases?.[user.id] || [], [purchases, user.id]);
@@ -353,55 +398,4 @@ const ShopView = ({ user, shopItems, purchases, onBuyItem, isAdmin, onAddShopIte
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {(shopItems || []).map(item => {
-                    const isPurchased = userPurchases.includes(item.id);
-                    return(
-                        <div key={item.id} className={`p-4 rounded-xl border-2 ${isPurchased ? 'bg-slate-100 border-slate-200' : 'bg-white border-slate-100'} text-center`}>
-                            <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3"><Gift className="w-8 h-8 text-purple-500"/></div>
-                            <p className="font-bold text-slate-800">{item.name}</p>
-                            <p className="text-sm text-slate-500 mb-3">{item.cost} Puan</p>
-                            {isAdmin ? <button onClick={() => onDeleteShopItem(item.id)} className="w-full p-2 bg-red-500 text-white text-sm rounded-lg">Sil</button> : <button onClick={() => onBuyItem(item.id, item.cost)} disabled={user.points < item.cost || isPurchased} className="w-full p-2 bg-purple-500 text-white text-sm rounded-lg disabled:bg-slate-300 disabled:cursor-not-allowed">{isPurchased ? "Satın Alındı" : "Satın Al"}</button>}
-                        </div>
-                    );
-                })}
-            </div>
-             {isAdmin && (
-                 <form onSubmit={handleAddItem} className="grid grid-cols-1 md:grid-cols-4 gap-2 mt-6 border-t pt-6">
-                    <input type="text" value={newItemName} onChange={e => setNewItemName(e.target.value)} placeholder="Yeni ödül adı..." className="md:col-span-2 p-3 border-2 border-slate-200 rounded-lg" />
-                    <input type="number" min="1" value={newItemCost} onChange={e => setNewItemCost(Number(e.target.value))} placeholder="Puan" className="p-3 border-2 border-slate-200 rounded-lg" />
-                    <button type="submit" className="p-3 bg-green-500 text-white rounded-lg hover:bg-green-600"><Plus /></button>
-                </form>
-            )}
-        </div>
-    );
-};
-
-const Confetti = () => {
-    return Array.from({ length: 50 }).map((_, i) => (
-        <div 
-            key={i} 
-            className="absolute w-2 h-4 bg-yellow-400 opacity-70 animate-fall"
-            style={{
-                left: `${Math.random() * 100}vw`,
-                animationDelay: `${Math.random() * 2}s`,
-                transform: `rotate(${Math.random() * 360}deg)`,
-                backgroundColor: ['#fde047', '#f97316', '#22c55e', '#3b82f6'][Math.floor(Math.random() * 4)]
-            }}
-        ></div>
-    ));
-};
-
-const ErrorScreen = ({ message }) => ( <div className="flex flex-col items-center justify-center h-screen bg-red-50 text-red-800 p-4"><AlertTriangle className="w-16 h-16 mb-4 text-red-500" /><h2 className="text-2xl font-bold mb-2">Bir Sorun Oluştu</h2><p className="text-center">{message}</p></div>);
-
-// Basit CSS animasyonu için stil etiketi ekleyelim
-const styleSheet = document.createElement("style");
-styleSheet.type = "text/css";
-styleSheet.innerText = `
-@keyframes fall {
-  0% { top: -10%; opacity: 1; }
-  100% { top: 110%; opacity: 0; }
-}
-.animate-fall {
-  animation: fall 3s linear infinite;
-}
-`;
-document.head.appendChild(styleSheet);
+                    co
