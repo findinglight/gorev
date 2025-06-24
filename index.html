@@ -19,7 +19,7 @@
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- React Kütüphaneleri (lucide-react'ten ÖNCE yüklenmeli) -->
+    <!-- React Kütüphaneleri -->
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     
@@ -28,22 +28,20 @@
     
     <!-- Diğer Kütüphaneler -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/lucide-react@0.292.0/dist/umd/lucide-react.js"></script>
     
-    <!-- Firebase Kütüphaneleri (v8 Uyumlu) -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 </head>
 <body class="bg-slate-50">
     <div id="root"></div>
 
-    <script type="text/babel">
-        // --- Kütüphaneleri Global Kapsamdan Alma ---
+    <script type="text/babel" data-type="module">
+        // --- Kütüphaneleri ve İkonları Import Etme ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-firestore.js";
+        import { CheckCircle, Star, Award, BookOpen, Smile, BrainCircuit, Plus, Trash2, Users, Settings, Gift, AlertTriangle, ShieldCheck, Store, Gem, Rocket, Crown, ShoppingCart } from 'https://cdn.jsdelivr.net/npm/lucide-react@0.292.0/dist/lucide-react.js';
+
         const { useState, useEffect, useMemo } = React;
         const { render } = ReactDOM;
-        // Lucide ikonları 'lucide' global değişkeninden gelir
-        const { CheckCircle, Star, Award, BookOpen, Smile, BrainCircuit, Plus, Trash2, Users, Settings, Gift, AlertTriangle, ShieldCheck, Store, Gem, Rocket, Crown, ShoppingCart } = lucide;
 
         // --- Firebase Konfigürasyonu ---
         const firebaseConfig = {
@@ -63,9 +61,9 @@
         let app, auth, db;
         try {
             if (firebaseConfig.apiKey && firebaseConfig.projectId) {
-                app = firebase.initializeApp(firebaseConfig);
-                auth = firebase.auth();
-                db = firebase.firestore();
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
             }
         } catch (e) {
             console.error("Firebase başlatma hatası:", e);
@@ -97,18 +95,18 @@
 
             useEffect(() => { if (!app) { setError("Firebase yapılandırması eksik. Lütfen kod içerisindeki firebaseConfig nesnesini doldurun."); setLoading(false); }}, []);
 
-            const dataDocRef = useMemo(() => db ? db.collection('artifacts').doc(appId).collection('publicData').doc('main') : null, [appId]);
+            const dataDocRef = useMemo(() => db ? doc(db, 'artifacts', appId, 'public', 'data', 'gorev-macerasi', 'main') : null, [appId]);
 
             useEffect(() => {
                 if (!auth) return;
-                const unsub = auth.onAuthStateChanged(u => u ? setIsAuthReady(true) : auth.signInAnonymously().catch(() => setError("Oturum açılamadı.")));
+                const unsub = onAuthStateChanged(auth, u => u ? setIsAuthReady(true) : signInAnonymously(auth).catch(() => setError("Oturum açılamadı.")));
                 return () => unsub();
             }, []);
 
             useEffect(() => {
                 if (!isAuthReady || !dataDocRef) { if (isAuthReady) setLoading(false); return; }
-                const unsub = dataDocRef.onSnapshot(docSnap => {
-                    if (docSnap.exists) {
+                const unsub = onSnapshot(dataDocRef, docSnap => {
+                    if (docSnap.exists()) {
                         const data = docSnap.data();
                         setAppData(data);
                         if(currentUser && !currentUser.isAdmin){
@@ -122,16 +120,16 @@
                         }
                     } else {
                         const initialData = { users: [], tasks: [ { id: 'task1', text: 'Kitap okuma', icon: 'BookOpen', points: 3 }, { id: 'task2', text: 'Diş fırçalama', icon: 'Smile', points: 1 }, { id: 'task3', text: 'Ders çalışma', icon: 'BrainCircuit', points: 5 } ], completions: {}, weeklyReward: 'Hafta sonu sinema keyfi!', shopItems: [ { id: 'shop1', name: '1 Saat Tablet', cost: 50, icon: 'Gift' } ], purchases: {} };
-                        dataDocRef.set(initialData).then(() => setAppData(initialData));
+                        setDoc(dataDocRef, initialData).then(() => setAppData(initialData));
                     }
                     setLoading(false);
-                }, () => { setError("Veri alınırken hata oluştu."); setLoading(false); });
+                }, (err) => { setError("Veri alınırken hata oluştu: " + err.message); setLoading(false); });
                 return () => unsub();
             }, [isAuthReady, dataDocRef, currentUser, appData]);
 
             const updateFirestore = async (newData) => {
                 if (!dataDocRef) return;
-                try { await dataDocRef.set({ ...(appData || {}), ...newData }, { merge: true }); } 
+                try { await setDoc(dataDocRef, { ...(appData || {}), ...newData }, { merge: true }); } 
                 catch (e) { setError("Veri kaydedilemedi."); }
             };
 
@@ -382,7 +380,7 @@
                                     <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3"><Gift className="w-8 h-8 text-purple-500"/></div>
                                     <p className="font-bold text-slate-800">{item.name}</p>
                                     <p className="text-sm text-slate-500 mb-3">{item.cost} Puan</p>
-                                    {isAdmin ? <button onClick={() => onDeleteShopItem(item.id)} className="w-full p-2 bg-red-500 text-white text-sm rounded-lg">Sil</button> : <button onClick={() => onBuyItem(item.id, item.cost)} disabled={user.points < cost || isPurchased} className="w-full p-2 bg-purple-500 text-white text-sm rounded-lg disabled:bg-slate-300 disabled:cursor-not-allowed">{isPurchased ? "Satın Alındı" : "Satın Al"}</button>}
+                                    {isAdmin ? <button onClick={() => onDeleteShopItem(item.id)} className="w-full p-2 bg-red-500 text-white text-sm rounded-lg">Sil</button> : <button onClick={() => onBuyItem(item.id, item.cost)} disabled={user.points < item.cost || isPurchased} className="w-full p-2 bg-purple-500 text-white text-sm rounded-lg disabled:bg-slate-300 disabled:cursor-not-allowed">{isPurchased ? "Satın Alındı" : "Satın Al"}</button>}
                                 </div>
                             );
                         })}
