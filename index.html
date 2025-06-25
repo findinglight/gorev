@@ -38,6 +38,7 @@
             trash: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-sm"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>`,
             award: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>`,
             chevronDown: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path d="m6 9 6 6 6-6"/></svg>`,
+            refresh: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon mr-2"><path d="M3 2v6h6"/><path d="M21 12A9 9 0 0 0 6 5.3L3 8"/><path d="M21 22v-6h-6"/><path d="M3 12a9 9 0 0 0 15 6.7l3-2.7"/></svg>`,
         };
 
         // --- TEMEL VERİ YAPISI ---
@@ -67,11 +68,11 @@
 
         // --- VERİ YÖNETİMİ ---
         function saveData() {
-            localStorage.setItem('gorevTablosuData_vanilla_v9', JSON.stringify(state));
+            localStorage.setItem('gorevTablosuData_vanilla_v10', JSON.stringify(state));
         }
 
         function loadData() {
-            const savedData = localStorage.getItem('gorevTablosuData_vanilla_v9');
+            const savedData = localStorage.getItem('gorevTablosuData_vanilla_v10');
             if (savedData) {
                 const parsedData = JSON.parse(savedData);
                 Object.assign(state, parsedData);
@@ -151,13 +152,9 @@
                 const today = toISODateString(new Date());
                 if (!state.completions[today]) state.completions[today] = {};
                 state.completions[today][rewardClaimId] = [userId];
-
-                // Puan düşürmek için kalıcı, negatif puanlı bir görev oluştur.
-                // Bu görev UI'da gösterilmeyecek ama puan hesaplamasında kullanılacak.
+                
                 const rewardTask = { id: rewardClaimId, text: `Ödül Kullanımı: ${reward.text}`, points: -reward.cost };
                 state.tasks.push(rewardTask);
-                
-                // Değişikliği kaydetmek ve arayüzü güncellemek için renderApp'i çağır.
                 renderApp(); 
             }
         }
@@ -165,6 +162,15 @@
         function toggleManagementPanel() {
             state.isManagementOpen = !state.isManagementOpen;
             renderApp();
+        }
+        
+        function resetAllProgress() {
+            if (confirm("DİKKAT! Tüm kullanıcıların puanları ve tamamlanmış görevleri kalıcı olarak silinecektir. Bu işlem geri alınamaz. Emin misiniz?")) {
+                state.completions = {};
+                // Puanları düşüren ödül görevlerini de temizle
+                state.tasks = state.tasks.filter(t => !t.id.startsWith('claim_'));
+                renderApp();
+            }
         }
 
         // --- RENDER FONKSİYONU: TÜM EKRANI ÇİZER ---
@@ -252,6 +258,9 @@
                             <div id="management-panel" class="${state.isManagementOpen ? 'open' : ''} mt-4">
                                 <form id="add-task-form" class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6 items-center"><input id="new-task-text" type="text" placeholder="Yeni görev adı..." class="md:col-span-2 p-3 border-2 border-slate-200 rounded-lg" required /><input id="new-task-points" type="number" min="1" value="1" class="p-3 border-2 border-slate-200 rounded-lg" required /><button type="submit" class="p-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 flex items-center justify-center">${ICONS.plus}Ekle</button></form>
                                 <div id="task-list-management" class="space-y-2"><h4 class="text-md font-semibold text-slate-500">Mevcut Görevler</h4>${state.tasks.filter(t => !t.id.startsWith('claim_')).map(task => `<div class="flex justify-between items-center bg-slate-50 p-2 rounded-lg"><span class="text-slate-800 flex-grow">${task.text}</span><input type="number" min="1" class="edit-task-points w-20 p-1 text-center border-2 border-slate-200 rounded-lg mx-4" data-task-id="${task.id}" value="${task.points}" /><button class="delete-task-btn p-2 text-red-500 hover:bg-red-100 rounded-full" data-task-id="${task.id}">${ICONS.trash}</button></div>`).join('')}</div>
+                                <div class="mt-6 pt-4 border-t border-red-300">
+                                     <button id="reset-all-btn" class="w-full p-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 flex items-center justify-center">${ICONS.refresh} Tüm Puanları ve İşaretleri Sıfırla</button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -280,6 +289,7 @@
                 const nextDayBtn = e.target.closest('#next-day-btn');
                 const specialRewardBtn = e.target.closest('.special-reward-btn');
                 const managementToggleBtn = e.target.closest('#toggle-management-btn');
+                const resetBtn = e.target.closest('#reset-all-btn');
 
                 if (deleteBtn) {
                     const taskId = deleteBtn.dataset.taskId;
@@ -300,6 +310,9 @@
                 }
                 if(managementToggleBtn) {
                     toggleManagementPanel();
+                }
+                if(resetBtn) {
+                    resetAllProgress();
                 }
             });
 
