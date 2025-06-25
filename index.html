@@ -48,8 +48,11 @@
                 { id: 'user2', name: 'Ömer' }
             ],
             tasks: [
-                { id: 'task1', text: 'Kitap Oku', points: 5 },
-                { id: 'task2', text: 'Diş Fırçala', points: 2 }
+                { id: 'task1', text: 'Kitap 50 Sf', points: 5 },
+                { id: 'task2', text: 'Diş Fırçala', points: 2 },
+                { id: 'task3', text: 'Yatak Topla', points: 2 },
+                { id: 'task4', text: 'Ezber Tekrarı', points: 5 },
+                { id: 'task5', text: 'Kuran', points: 10 }
             ],
             completions: {},
             weeklyReward: 'Sinema',
@@ -75,10 +78,9 @@
             const savedData = localStorage.getItem('gorevTablosuData_vanilla_v10');
             if (savedData) {
                 const parsedData = JSON.parse(savedData);
-                Object.assign(state, parsedData);
-                if (state.isManagementOpen === undefined) {
-                    state.isManagementOpen = false;
-                }
+                // Kullanıcı ve görevler gibi temel yapıları koru, sadece ilerlemeyi yükle
+                state.completions = parsedData.completions || {};
+                state.tasks = parsedData.tasks || initialData.tasks;
             }
         }
 
