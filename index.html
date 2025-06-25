@@ -4,263 +4,338 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Topuz Ailesi Görev Macerası</title>
-    
-    <!-- Stil ve Font Dosyaları -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style> body { font-family: 'Inter', sans-serif; } </style>
-    
-    <!-- Gerekli Kütüphaneler (Doğru Sırada) -->
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/lucide-react@0.292.0/dist/umd/lucide-react.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
+    <style> 
+        body { font-family: 'Inter', sans-serif; } 
+        .task-checkbox { width: 1.5rem; height: 1.5rem; cursor: pointer; }
+    </style>
 </head>
 <body class="bg-slate-100">
-    <div id="root"></div>
 
-    <script type="text/babel">
-        // --- Kütüphaneleri Global Kapsamdan Alma ---
-        const { useState, useEffect, useMemo } = React;
-        const { render } = ReactDOM;
-        const { CheckCircle, Star, Award, BookOpen, Smile, BrainCircuit, Plus, Trash2, Users, Settings, AlertTriangle, ShieldCheck } = lucide;
+    <div id="app" class="container mx-auto p-4 max-w-4xl">
+        <!-- Uygulama içeriği JavaScript ile buraya eklenecek -->
+    </div>
 
-        // --- Firebase Konfigürasyonu ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyCq0cVlW_edwAROUXfKceC2rJzFps_wRFM",
-            authDomain: "gorev-39d45.firebaseapp.com",
-            projectId: "gorev-39d45",
-            storageBucket: "gorev-39d45.firebasestorage.app",
-            messagingSenderId: "340635577706",
-            appId: "1:340635577706:web:17b8864987b6d070990913",
-            measurementId: "G-WS9NKLTKV1"
+    <script>
+        // --- TEMEL VERİ YAPISI ---
+        const state = {
+            users: [
+                { id: 'user1', name: 'Selo' },
+                { id: 'user2', name: 'Ömer' }
+            ],
+            tasks: [
+                { id: 'task1', text: 'Kitap Oku', points: 5 },
+                { id: 'task2', text: 'Diş Fırçala', points: 2 }
+            ],
+            completions: {}, // { 'YYYY-MM-DD': { 'taskId': ['userId1'] } }
+            weeklyReward: 'Sinema',
+            specialRewards: [
+                { id: 'reward1', text: '30 Dakika Bilgisayar Hakkı', cost: 50 }
+            ],
+            claimedSpecialRewards: {} // { userId: ['rewardId'] }
         };
         
-        // --- Firebase Servislerini Başlatma ---
-        let app, auth, db;
-        try {
-            if (window.firebase && firebaseConfig.apiKey) {
-                app = firebase.initializeApp(firebaseConfig);
-                auth = firebase.auth();
-                db = firebase.firestore();
+        let currentDate = new Date();
+        const appContainer = document.getElementById('app');
+
+        // --- YARDIMCI FONKSİYONLAR ---
+        const toISODateString = (date) => {
+            const offset = date.getTimezoneOffset();
+            const adjustedDate = new Date(date.getTime() - (offset * 60 * 1000));
+            return adjustedDate.toISOString().split('T')[0];
+        };
+        const getFormattedDateTR = (date) => {
+            return date.toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        };
+
+
+        // --- VERİ YÖNETİMİ ---
+        function saveData() {
+            localStorage.setItem('gorevTablosuData_vanilla_v6', JSON.stringify(state));
+        }
+
+        function loadData() {
+            const savedData = localStorage.getItem('gorevTablosuData_vanilla_v6');
+            if (savedData) {
+                const parsedData = JSON.parse(savedData);
+                Object.assign(state, parsedData);
             }
-        } catch (e) {
-            console.error("Firebase başlatma hatası:", e);
         }
 
-        // --- Yardımcı Fonksiyonlar ---
-        const getTodayDateString = () => new Date(new Date().getTime() - (new Date().getTimezoneOffset()*60*1000)).toISOString().split('T')[0];
-        const getFormattedDateTR = () => new Date().toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        // --- GÖREV ve ÖDÜL FONKSİYONLARI ---
+        function addTask(text, points) {
+            const newTask = { id: `task_${Date.now()}`, text, points: parseInt(points, 10) || 1 };
+            state.tasks.push(newTask);
+            renderApp();
+        }
 
-        // --- Ana Uygulama Komponenti ---
-        function App() {
-            const [appData, setAppData] = useState(null);
-            const [currentUser, setCurrentUser] = useState(null);
-            const [loading, setLoading] = useState(true);
-            const [error, setError] = useState(null);
+        function deleteTask(taskId) {
+            state.tasks = state.tasks.filter(t => t.id !== taskId);
+            Object.keys(state.completions).forEach(date => {
+                delete state.completions[date][taskId];
+            });
+            renderApp();
+        }
 
-            useEffect(() => {
-                if (!app) {
-                    setError("Firebase yapılandırması eksik veya hatalı.");
-                    setLoading(false);
+        function updateTaskPoints(taskId, newPoints) {
+            const task = state.tasks.find(t => t.id === taskId);
+            if (task) {
+                task.points = parseInt(newPoints, 10) || 1;
+                renderApp();
+            }
+        }
+
+        function toggleCompletion(taskId, userId) {
+            const dateKey = toISODateString(currentDate);
+            if (!state.completions[dateKey]) state.completions[dateKey] = {};
+            if (!state.completions[dateKey][taskId]) state.completions[dateKey][taskId] = [];
+
+            const completedBy = state.completions[dateKey][taskId];
+            const userIndex = completedBy.indexOf(userId);
+
+            if (userIndex > -1) {
+                completedBy.splice(userIndex, 1);
+            } else {
+                completedBy.push(userId);
+            }
+            renderApp();
+        }
+        
+        function changeDate(offset) {
+            currentDate.setDate(currentDate.getDate() + offset);
+            renderApp();
+        }
+
+        function claimSpecialReward(userId, reward) {
+            const userPoints = calculateUserPoints();
+            if (userPoints[userId] >= reward.cost) {
+                if (!state.claimedSpecialRewards[userId]) {
+                    state.claimedSpecialRewards[userId] = [];
                 }
-            }, []);
+                
+                // Puan düşürmek için sahte negatif puanlı bir görev tamamlama kaydı oluştur
+                const rewardClaimId = `claim_${reward.id}_${Date.now()}`;
+                const today = toISODateString(new Date());
+                if (!state.completions[today]) state.completions[today] = {};
+                state.completions[today][rewardClaimId] = [userId];
 
-            const dataDocRef = useMemo(() => {
-                if (!db) return null;
-                return db.collection('gorev-macerasi-data').doc('main');
-            }, []);
+                // Geçici olarak görev listesine ekle
+                const tempRewardTask = {id: rewardClaimId, text: `Ödül Kullanımı: ${reward.text}`, points: -reward.cost};
+                state.tasks.push(tempRewardTask);
 
-            useEffect(() => {
-                if (!auth || !dataDocRef) {
-                    if(!error) setLoading(false);
-                    return;
-                }
+                renderApp(); // Puanların düşmesi için yeniden render et
 
-                const unsubscribeAuth = auth.onAuthStateChanged(user => {
-                    if (user) {
-                        const unsubscribeSnapshot = dataDocRef.onSnapshot(docSnap => {
-                            if (docSnap.exists) {
-                                setAppData(docSnap.data());
-                            } else {
-                                const initialData = {
-                                    users: [],
-                                    tasks: [
-                                        { id: 'task1', text: 'Kitap oku', icon: 'BookOpen', points: 1 },
-                                        { id: 'task2', text: 'Diş fırçala', icon: 'Smile', points: 1 }
-                                    ],
-                                    completions: {},
-                                    weeklyReward: 'Hafta sonu sinema keyfi!',
-                                };
-                                dataDocRef.set(initialData).then(() => setAppData(initialData));
+                // Geçici görevi hemen kaldır
+                state.tasks = state.tasks.filter(t => t.id !== rewardClaimId);
+                
+                // Ödülün alındığını kaydet
+                state.claimedSpecialRewards[userId].push(reward.id);
+
+                renderApp(); // Son haliyle tekrar render et
+            }
+        }
+
+
+        // --- PUAN HESAPLAMA ---
+        function calculateUserPoints() {
+            const points = {};
+            state.users.forEach(user => { points[user.id] = 0; });
+            Object.values(state.completions).forEach(dailyCompletions => {
+                Object.entries(dailyCompletions).forEach(([taskId, completedUserIds]) => {
+                    const task = state.tasks.find(t => t.id === taskId);
+                    if (task) {
+                        completedUserIds.forEach(userId => {
+                            if (points[userId] !== undefined) {
+                                points[userId] += task.points;
                             }
-                            setLoading(false);
-                        }, firestoreError => {
-                            setError("Veri alınırken hata oluştu: " + firestoreError.message);
-                            setLoading(false);
-                        });
-                        return () => unsubscribeSnapshot();
-                    } else {
-                        auth.signInAnonymously().catch(authError => {
-                             setError("Oturum açılamadı. Firebase ayarlarınızı ve kurallarınızı kontrol edin.");
-                             setLoading(false);
                         });
                     }
                 });
-                return () => unsubscribeAuth();
-            }, [dataDocRef, error]);
-
-            const updateFirestore = async (newData) => {
-                if (!dataDocRef) return;
-                try {
-                    await dataDocRef.set({ ...(appData || {}), ...newData }, { merge: true });
-                } catch (updateError) {
-                    setError("Veri kaydedilemedi.");
-                }
-            };
-            
-            const addUser = (name) => {
-                const newUser = { id: `user_${Date.now()}`, name, points: 0 };
-                const updatedUsers = [...(appData?.users || []), newUser];
-                updateFirestore({ users: updatedUsers });
-            };
-
-            const addTask = (text, points) => {
-                const newTask = { id: `task_${Date.now()}`, text, icon: 'CheckCircle', points };
-                const updatedTasks = [...(appData?.tasks || []), newTask];
-                updateFirestore({ tasks: updatedTasks });
-            };
-
-            const deleteTask = (taskId) => {
-                const updatedTasks = (appData?.tasks || []).filter(t => t.id !== taskId);
-                updateFirestore({ tasks: updatedTasks });
-            };
-
-            const toggleTaskCompletion = (task) => {
-                if (currentUser.isAdmin) return;
-                const today = getTodayDateString();
-                const completions = JSON.parse(JSON.stringify(appData.completions || {}));
-                
-                if (!completions[today]) completions[today] = {};
-                if (!completions[today][currentUser.id]) completions[today][currentUser.id] = [];
-
-                const userCompletionsToday = completions[today][currentUser.id];
-                const taskIndex = userCompletionsToday.indexOf(task.id);
-                const pointsChange = task.points || 1;
-                
-                if (taskIndex > -1) {
-                    userCompletionsToday.splice(taskIndex, 1);
-                } else {
-                    userCompletionsToday.push(task.id);
-                }
-                
-                const updatedUsers = appData.users.map(u => {
-                    if (u.id === currentUser.id) {
-                        const currentPoints = u.points || 0;
-                        const newPoints = taskIndex > -1 ? currentPoints - pointsChange : currentPoints + pointsChange;
-                        return { ...u, points: Math.max(0, newPoints) };
-                    }
-                    return u;
-                });
-
-                updateFirestore({ completions, users: updatedUsers });
-            };
-            
-            const updateWeeklyReward = (newReward) => {
-                updateFirestore({ weeklyReward: newReward });
-            };
-
-            if (loading) return <div className="flex items-center justify-center h-screen bg-blue-50 text-blue-700 font-semibold">Yükleniyor...</div>;
-            if (error) return <ErrorScreen message={error} />;
-            if (!appData) return <div className="flex items-center justify-center h-screen bg-blue-50">Veriler hazırlanıyor...</div>;
-            if (!currentUser) return <UserSelectionScreen users={appData.users || []} onSelectUser={setCurrentUser} onAddUser={addUser} />;
-            
-            return (
-                <Dashboard 
-                    user={currentUser}
-                    appData={appData}
-                    onToggleTask={toggleTaskCompletion}
-                    onAddTask={addTask}
-                    onDeleteTask={deleteTask}
-                    onUpdateReward={updateWeeklyReward}
-                    onSwitchUser={() => setCurrentUser(null)}
-                />
-            );
+            });
+            return points;
         }
 
-        // --- Komponentler ---
-        function UserSelectionScreen({ users, onSelectUser, onAddUser }) {
-            const [newUserName, setNewUserName] = useState('');
-            const [showAdminLogin, setShowAdminLogin] = useState(false);
-            const handleAddUser = e => { e.preventDefault(); if (newUserName.trim()) { onAddUser(newUserName.trim()); setNewUserName(''); }};
-            if (showAdminLogin) return <AdminLoginModal onLogin={onSelectUser} onCancel={() => setShowAdminLogin(false)} />;
-            return (
-                <div className="min-h-screen bg-gradient-to-br from-blue-200 to-cyan-200 flex flex-col items-center justify-center p-4">
-                    <div className="w-full max-w-md bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 text-center">
-                        <Users className="mx-auto h-16 w-16 text-blue-500 mb-4" />
-                        <h1 className="text-3xl font-bold text-slate-800 mb-2">Topuz Ailesi Görev Macerası</h1>
-                        <p className="text-slate-600 mb-8">Kim Oynuyor?</p>
-                        <div className="space-y-3 mb-6">
-                            {(users || []).map(user => (
-                                <button key={user.id} onClick={() => onSelectUser(user)} className="w-full text-left p-4 bg-white rounded-lg shadow-md hover:bg-blue-100 hover:shadow-lg transition-all flex items-center justify-between">
-                                    <div className="flex items-center">
-                                        <span className="flex-shrink-0 h-10 w-10 rounded-full bg-blue-500 text-white font-bold flex items-center justify-center text-lg mr-4">{user.name.charAt(0)}</span>
-                                        <span className="text-xl font-semibold text-slate-700">{user.name}</span>
-                                    </div>
-                                    <div className="flex items-center gap-1 text-yellow-600 font-semibold pr-2"><Star className="w-5 h-5 text-yellow-500" /><span>{user.points || 0}</span></div>
-                                </button>
-                            ))}
+        // --- RENDER FONKSİYONU: TÜM EKRANI ÇİZER ---
+        function renderApp() {
+            const userPoints = calculateUserPoints();
+            const currentDateKey = toISODateString(currentDate);
+            const isToday = currentDateKey === toISODateString(new Date());
+
+            let tableRowsHtml = '';
+            state.tasks.forEach(task => {
+                // Sadece gerçek görevleri göster, ödül kullanımını gösterme
+                if(task.id.startsWith('claim_')) return;
+
+                const completedBy = state.completions[currentDateKey]?.[task.id] || [];
+                let userCheckboxesHtml = '';
+                state.users.forEach(user => {
+                    const isChecked = completedBy.includes(user.id);
+                    userCheckboxesHtml += `
+                        <td class="p-4 text-center">
+                            <input type="checkbox" class="task-checkbox h-6 w-6 accent-green-500" data-task-id="${task.id}" data-user-id="${user.id}" ${isChecked ? 'checked' : ''}>
+                        </td>
+                    `;
+                });
+                tableRowsHtml += `<tr class="border-b border-slate-200"><td class="p-4 font-medium text-slate-800">${task.text}</td><td class="p-4 text-center font-bold text-blue-600">${task.points}</td>${userCheckboxesHtml}</tr>`;
+            });
+
+            // Haftalık İlerleme Hesaplama
+            let weeklyProgressHtml = '';
+            state.users.forEach(user => {
+                const today = new Date();
+                const dayOfWeek = today.getDay(); 
+                const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+                
+                const monday = new Date(today);
+                monday.setDate(today.getDate() - daysSinceMonday);
+                monday.setHours(0, 0, 0, 0);
+
+                let completedDays = 0;
+                for (let i = 0; i < 7; i++) {
+                    const dayToCheck = new Date(monday);
+                    dayToCheck.setDate(monday.getDate() + i);
+                    if (dayToCheck > today) break;
+                    
+                    const dateString = toISODateString(dayToCheck);
+                    let allTasksDone = state.tasks.filter(t => !t.id.startsWith('claim_')).length > 0;
+                    for (const task of state.tasks) {
+                         if(task.id.startsWith('claim_')) continue;
+                        const completedBy = state.completions[dateString]?.[task.id] || [];
+                        if (!completedBy.includes(user.id)) {
+                            allTasksDone = false;
+                            break;
+                        }
+                    }
+                    if (allTasksDone) completedDays++;
+                }
+
+                const progressPercentage = (completedDays / 7) * 100;
+                const isWeekComplete = completedDays >= 7;
+
+                weeklyProgressHtml += `
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span class="text-base font-medium text-blue-700">${user.name}</span>
+                            <span class="text-sm font-medium text-blue-700">${completedDays} / 7 gün</span>
                         </div>
-                        <form onSubmit={handleAddUser} className="flex gap-2 mb-4">
-                            <input type="text" value={newUserName} onChange={e => setNewUserName(e.target.value)} placeholder="Yeni Maceracı Ekle" className="flex-grow p-3 border-2 border-slate-300 rounded-lg" />
-                            <button type="submit" className="p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"><Plus /></button>
-                        </form>
-                        <button onClick={() => setShowAdminLogin(true)} className="text-sm text-slate-500 hover:text-blue-600">Yönetici Girişi</button>
+                        <div class="w-full bg-slate-200 rounded-full h-4">
+                            <div class="h-4 rounded-full ${isWeekComplete ? 'bg-green-500' : 'bg-blue-500'}" style="width: ${progressPercentage}%"></div>
+                        </div>
+                        ${isWeekComplete ? `<p class="text-green-600 font-bold text-center mt-2">Tebrikler, haftayı tamamladın!</p>` : ''}
+                    </div>
+                `;
+            });
+
+            appContainer.innerHTML = `
+                <div class="w-full">
+                    <header class="text-center mb-6"><h1 class="text-4xl font-bold text-slate-800">Topuz Ailesi Görev Macerası</h1></header>
+                    <div class="bg-white rounded-2xl shadow-xl p-6">
+                        <div class="flex justify-center flex-wrap gap-4 sm:gap-6 mb-6">
+                            ${state.users.map(user => `<div class="text-center bg-yellow-100 text-yellow-800 rounded-lg p-4 shadow-sm w-40"><p class="font-bold text-xl">${user.name}</p><p class="font-semibold text-2xl">${userPoints[user.id] || 0} Puan</p></div>`).join('')}
+                        </div>
+                        <div class="flex items-center justify-center my-6">
+                            <button id="prev-day-btn" class="p-2 rounded-full hover:bg-slate-200"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-slate-600"><path d="m15 18-6-6 6-6"/></svg></button>
+                            <h2 class="text-2xl font-bold text-slate-700 mx-4 text-center w-72">${getFormattedDateTR(currentDate)}</h2>
+                            <button id="next-day-btn" class="p-2 rounded-full hover:bg-slate-200 ${isToday ? 'opacity-30 cursor-not-allowed' : ''}" ${isToday ? 'disabled' : ''}><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-slate-600"><path d="m9 18 6-6-6-6"/></svg></button>
+                        </div>
+                        <div class="overflow-x-auto"><table class="w-full text-left border-collapse"><thead><tr class="bg-slate-200"><th class="p-4 text-lg font-semibold text-slate-700 rounded-tl-lg">Görev</th><th class="p-4 text-lg font-semibold text-slate-700 text-center">Puan</th>${state.users.map(user => `<th class="p-4 text-lg font-semibold text-slate-700 text-center">${user.name}</th>`).join('')}</tr></thead><tbody>${tableRowsHtml.length > 0 ? tableRowsHtml : `<tr><td colspan="${state.users.length + 2}" class="text-center p-8 text-slate-500">Henüz görev eklenmemiş.</td></tr>`}</tbody></table></div>
+                        
+                        <div class="mt-8 pt-6 border-t grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div>
+                                <h3 class="text-xl font-bold text-slate-700 mb-4">Görevleri Yönet</h3>
+                                <form id="add-task-form" class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6 items-center">
+                                    <input id="new-task-text" type="text" placeholder="Yeni görev adı..." class="md:col-span-2 p-3 border-2 border-slate-200 rounded-lg" required />
+                                    <input id="new-task-points" type="number" min="1" value="1" placeholder="Puan" class="p-3 border-2 border-slate-200 rounded-lg" required />
+                                    <button type="submit" class="p-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 flex items-center justify-center">Ekle</button>
+                                </form>
+                                <div id="task-list-management" class="space-y-2"><h4 class="text-md font-semibold text-slate-500">Mevcut Görevler</h4>${state.tasks.filter(t => !t.id.startsWith('claim_')).map(task => `<div class="flex justify-between items-center bg-slate-50 p-2 rounded-lg"><span class="text-slate-800 flex-grow">${task.text}</span><input type="number" min="1" class="edit-task-points w-20 p-1 text-center border-2 border-slate-200 rounded-lg mx-4" data-task-id="${task.id}" value="${task.points}" /><button class="delete-task-btn p-2 text-red-500 hover:bg-red-100 rounded-full" data-task-id="${task.id}">Sil</button></div>`).join('')}</div>
+                            </div>
+                             <div>
+                                <div class="rounded-2xl shadow-lg p-6 bg-amber-50 mb-6">
+                                    <h3 class="text-xl font-bold text-amber-800 mb-4">Haftalık İlerleme</h3>
+                                    <p class="text-amber-700 mb-4">Haftalık Ödül: <span class="font-bold">${state.weeklyReward}</span></p>
+                                    <div class="space-y-4">${weeklyProgressHtml}</div>
+                                </div>
+                                <div class="rounded-2xl shadow-lg p-6 bg-indigo-50">
+                                    <h3 class="text-xl font-bold text-indigo-800 mb-4">Özel Ödüller</h3>
+                                    <div class="space-y-4">
+                                        ${state.users.map(user => {
+                                            const reward = state.specialRewards[0];
+                                            const canClaim = (userPoints[user.id] || 0) >= reward.cost;
+                                            return `<div class="flex justify-between items-center"><p class="font-semibold text-indigo-700">${user.name} için:<br><span class="text-sm font-normal">${reward.text} (${reward.cost} Puan)</span></p><button class="special-reward-btn p-2 rounded-lg font-semibold ${canClaim ? 'bg-indigo-500 text-white' : 'bg-slate-200 text-slate-500 cursor-not-allowed'}" data-user-id="${user.id}" data-reward-id="${reward.id}" ${!canClaim ? 'disabled' : ''}>Kullan</button></div>`;
+                                        }).join('')}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            );
-        };
+            `;
+            
+            saveData();
+        }
 
-        function AdminLoginModal({ onLogin, onCancel }) {
-            const [password, setPassword] = useState('');
-            const [error, setError] = useState('');
-            const handleSubmit = e => { e.preventDefault(); if (password.toUpperCase() === "ADMIN") onLogin({ id: 'admin', name: 'Yönetici', isAdmin: true, points: '∞' }); else { setError('Hatalı şifre!'); setPassword(''); }};
-            return (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-                    <div className="bg-white rounded-2xl shadow-2xl p-8 text-center w-full max-w-sm">
-                        <ShieldCheck className="mx-auto h-16 w-16 text-blue-500 mb-4" />
-                        <h2 className="text-2xl font-bold text-slate-800 mb-4">Yönetici Girişi</h2>
-                        <form onSubmit={handleSubmit}>
-                            <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Yönetici Şifresi" className="w-full p-3 border-2 border-slate-300 rounded-lg" />
-                            {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
-                            <div className="flex gap-3 mt-6">
-                                <button type="button" onClick={onCancel} className="flex-1 p-3 bg-slate-200 text-slate-700 rounded-lg">İptal</button>
-                                <button type="submit" className="flex-1 p-3 bg-blue-600 text-white rounded-lg">Giriş Yap</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            );
-        };
+        // --- EVENT LISTENERS (OLAY DİNLEYİCİLERİ) ---
+        function attachEventListeners() {
+            appContainer.addEventListener('change', (e) => {
+                if (e.target.classList.contains('task-checkbox')) {
+                    const taskId = e.target.dataset.taskId;
+                    const userId = e.target.dataset.userId;
+                    toggleCompletion(taskId, userId);
+                }
+                if(e.target.classList.contains('edit-task-points')){
+                    const taskId = e.target.dataset.taskId;
+                    updateTaskPoints(taskId, e.target.value);
+                }
+            });
+            
+            appContainer.addEventListener('click', (e) => {
+                const deleteBtn = e.target.closest('.delete-task-btn');
+                const prevDayBtn = e.target.closest('#prev-day-btn');
+                const nextDayBtn = e.target.closest('#next-day-btn');
+                const specialRewardBtn = e.target.closest('.special-reward-btn');
 
-        function Dashboard({ user, appData, onToggleTask, onAddTask, onDeleteTask, onUpdateReward, onSwitchUser }) {
-            const displayedUser = useMemo(() => appData?.users?.find(u => u.id === user.id) || user, [appData?.users, user.id]);
-            const isUserAdmin = user.isAdmin || false;
-            const [manageMode, setManageMode] = useState(isUserAdmin);
+                if (deleteBtn) {
+                    const taskId = deleteBtn.dataset.taskId;
+                    const taskText = state.tasks.find(t => t.id === taskId)?.text || '';
+                    if (confirm(`'${taskText}' görevini silmek istediğinizden emin misiniz?`)) {
+                       deleteTask(taskId);
+                    }
+                }
+                
+                if (prevDayBtn) changeDate(-1);
+                if (nextDayBtn) changeDate(1);
 
-            return (
-                <div className="bg-slate-50 min-h-screen font-sans">
-                    <div className="container mx-auto p-4 max-w-4xl">
-                        <header className="flex justify-between items-center mb-6">
-                            <div><h1 className="text-4xl font-bold text-slate-800 flex items-center gap-2">{displayedUser.name}{isUserAdmin && <ShieldCheck className="w-8 h-8 text-blue-500" />}</h1></div>
-                            <div className="flex items-center gap-4">
-                                <div className="flex items-center gap-2 bg-yellow-100 text-yellow-800 font-bold py-2 px-4 rounded-full"><Star className="w-6 h-6 text-yellow-500" /><span>{displayedUser?.points || 0}</span></div>
-                                {isUserAdmin && <button onClick={() => setManageMode(!manageMode)} className={`p-3 rounded-full transition ${manageMode ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-600'}`}><Settings /></button>}
-                                <button onClick={onSwitchUser} className="p-3 bg-slate-200 text-slate-600 rounded-full hover:bg-slate-300"><Users /></button>
-                            </div>
-                        </header>
-                         <div className="grid grid-cols-1 md:grid-cols-3 ga
+                if(specialRewardBtn) {
+                    const userId = specialRewardBtn.dataset.userId;
+                    const rewardId = specialRewardBtn.dataset.rewardId;
+                    const reward = state.specialRewards.find(r => r.id === rewardId);
+                    if(confirm(`${reward.cost} puan kullanarak "${reward.text}" ödülünü almak istediğinizden emin misiniz?`)){
+                        claimSpecialReward(userId, reward);
+                    }
+                }
+            });
+
+            appContainer.addEventListener('submit', (e) => {
+                if (e.target.id === 'add-task-form') {
+                    e.preventDefault();
+                    const textInput = document.getElementById('new-task-text');
+                    const pointsInput = document.getElementById('new-task-points');
+                    if (textInput.value.trim()) {
+                        addTask(textInput.value.trim(), pointsInput.value);
+                    }
+                }
+            });
+        }
+
+        // --- UYGULAMAYI BAŞLATMA ---
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData();
+            renderApp();
+            attachEventListeners();
+        });
+
+    </script>
+</body>
+</html>
