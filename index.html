@@ -167,7 +167,6 @@
         function resetAllProgress() {
             if (confirm("DİKKAT! Tüm kullanıcıların puanları ve tamamlanmış görevleri kalıcı olarak silinecektir. Bu işlem geri alınamaz. Emin misiniz?")) {
                 state.completions = {};
-                // Puanları düşüren ödül görevlerini de temizle
                 state.tasks = state.tasks.filter(t => !t.id.startsWith('claim_'));
                 renderApp();
             }
@@ -230,10 +229,10 @@
                 <div class="w-full">
                     <header class="text-center mb-6">${ICONS.home}<h1 class="text-3xl font-bold text-slate-800">Topuz Günlük Görev</h1></header>
                     <div class="bg-white rounded-2xl shadow-xl p-6">
-                        <div class="flex justify-center flex-wrap gap-4 sm:gap-6 mb-6">${state.users.map(user => `<div class="text-center bg-yellow-100 text-yellow-800 rounded-lg p-4 shadow-sm w-40"><p class="font-bold text-xl">${user.name}</p><p class="font-semibold text-2xl">${userPoints[user.id] || 0} Puan</p></div>`).join('')}</div>
+                        <div class="flex justify-center flex-wrap gap-2 mb-6">${state.users.map(user => `<div class="text-center bg-yellow-100 text-yellow-800 rounded-lg p-3 shadow-sm flex-1" style="min-width: 120px;"><p class="font-bold text-lg">${user.name}</p><p class="font-semibold text-xl">${userPoints[user.id] || 0} Puan</p></div>`).join('')}</div>
                         <div class="flex items-center justify-center my-6">
                             <button id="prev-day-btn" class="p-2 rounded-full hover:bg-slate-200"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-slate-600"><path d="m15 18-6-6 6-6"/></svg></button>
-                            <h2 class="text-xl font-semibold text-slate-700 mx-4 text-center w-64 md:w-72">${getFormattedDateTR(currentDate)}</h2>
+                            <h2 class="text-xl font-semibold text-slate-700 mx-2 text-center">${getFormattedDateTR(currentDate)}</h2>
                             <button id="next-day-btn" class="p-2 rounded-full hover:bg-slate-200 ${isToday ? 'opacity-30 cursor-not-allowed' : ''}" ${isToday ? 'disabled' : ''}><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-slate-600"><path d="m9 18 6-6-6-6"/></svg></button>
                         </div>
                         <div class="overflow-x-auto"><table class="w-full text-left border-collapse"><thead><tr class="bg-slate-200"><th class="p-4 text-lg font-semibold text-slate-700 rounded-tl-lg">Görev</th><th class="p-4 text-lg font-semibold text-slate-700 text-center">Puan</th>${state.users.map(user => `<th class="p-4 text-lg font-semibold text-slate-700 text-center">${user.name}</th>`).join('')}</tr></thead><tbody>${tableRowsHtml.length > 0 ? tableRowsHtml : `<tr><td colspan="${state.users.length + 2}" class="text-center p-8 text-slate-500">Henüz görev eklenmemiş.</td></tr>`}</tbody></table></div>
