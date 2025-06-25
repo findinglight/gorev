@@ -75,7 +75,6 @@
             if (savedData) {
                 const parsedData = JSON.parse(savedData);
                 Object.assign(state, parsedData);
-                 // Kayıtlı veride isManagementOpen yoksa varsayılan olarak false ata
                 if (state.isManagementOpen === undefined) {
                     state.isManagementOpen = false;
                 }
@@ -246,9 +245,9 @@
                         <div class="mt-8 pt-6 border-t">
                              <button id="toggle-management-btn" class="w-full flex justify-between items-center p-2 rounded-lg hover:bg-slate-100">
                                 <h3 class="text-xl font-bold text-slate-700">Görevleri Yönet</h3>
-                                <span class="chevron-icon ${state.isManagementOpen ? 'rotate-180' : ''}">${ICONS.chevronDown}</span>
+                                <span class="chevron-icon ${state.isManagementOpen ? 'open' : ''}">${ICONS.chevronDown}</span>
                             </button>
-                            <div id="management-panel" class="${state.isManagementOpen ? '' : 'hidden'} mt-4">
+                            <div id="management-panel" class="${state.isManagementOpen ? 'open' : ''} mt-4">
                                 <form id="add-task-form" class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6 items-center"><input id="new-task-text" type="text" placeholder="Yeni görev adı..." class="md:col-span-2 p-3 border-2 border-slate-200 rounded-lg" required /><input id="new-task-points" type="number" min="1" value="1" class="p-3 border-2 border-slate-200 rounded-lg" required /><button type="submit" class="p-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 flex items-center justify-center">${ICONS.plus}Ekle</button></form>
                                 <div id="task-list-management" class="space-y-2"><h4 class="text-md font-semibold text-slate-500">Mevcut Görevler</h4>${state.tasks.filter(t => !t.id.startsWith('claim_')).map(task => `<div class="flex justify-between items-center bg-slate-50 p-2 rounded-lg"><span class="text-slate-800 flex-grow">${task.text}</span><input type="number" min="1" class="edit-task-points w-20 p-1 text-center border-2 border-slate-200 rounded-lg mx-4" data-task-id="${task.id}" value="${task.points}" /><button class="delete-task-btn p-2 text-red-500 hover:bg-red-100 rounded-full" data-task-id="${task.id}">${ICONS.trash}</button></div>`).join('')}</div>
                             </div>
