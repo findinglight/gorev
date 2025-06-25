@@ -6,8 +6,8 @@
     <title>Topuz Ailesi Görev Macerası</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style> 
-        body { font-family: 'Inter', sans-serif; } 
+    <style>
+        body { font-family: 'Inter', sans-serif; }
         .task-checkbox { width: 1.5rem; height: 1.5rem; cursor: pointer; }
         .icon { width: 1.5rem; height: 1.5rem; }
         .icon-lg { width: 3rem; height: 3rem; }
@@ -18,7 +18,7 @@
             transition: max-height 0.5s ease-in-out;
         }
         #management-panel.open {
-            max-height: 1000px; /* İçeriğin sığacağı kadar büyük bir değer */
+            max-height: 1000px;
         }
         .chevron-icon { transition: transform 0.3s ease; }
         .chevron-icon.open { transform: rotate(180deg); }
@@ -26,23 +26,21 @@
 </head>
 <body class="bg-slate-100">
 
-    <div id="app" class="container mx-auto p-4 max-w-4xl">
-        <!-- Uygulama içeriği JavaScript ile buraya eklenecek -->
-    </div>
+    <div id="app" class="container mx-auto p-4 max-w-4xl"></div>
 
     <script>
-        // --- İKONLAR (SVG olarak) ---
+        // --- İKONLAR ---
         const ICONS = {
-            home: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-lg mx-auto text-blue-600 mb-2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
-            plus: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon mr-2"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>`,
-            trash: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-sm"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>`,
-            award: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>`,
-            chevronDown: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path d="m6 9 6 6 6-6"/></svg>`,
-            refresh: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon mr-2"><path d="M3 2v6h6"/><path d="M21 12A9 9 0 0 0 6 5.3L3 8"/><path d="M21 22v-6h-6"/><path d="M3 12a9 9 0 0 0 15 6.7l3-2.7"/></svg>`,
+            home: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" class="icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7"/><path d="M9 22V12h6v10"/><path d="M21 22H3"/></svg>`,
+            plus: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" class="icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`,
+            trash: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" class="icon" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>`,
+            award: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" class="icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>`,
+            chevronDown: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" class="icon" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>`,
+            refresh: `<svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" class="icon" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M1 20a11 11 0 0 0 17.63-3"/><polyline points="1 14 1 20 7 20"/></svg>`
         };
 
-        // --- TEMEL VERİ YAPISI ---
-        const state = {
+        // --- STATE ---
+        const defaultState = {
             users: [
                 { id: 'user1', name: 'Selo' },
                 { id: 'user2', name: 'Ömer' }
@@ -61,41 +59,36 @@
             ],
             isManagementOpen: false,
         };
-        
+
+        let state = {};
         let currentDate = new Date();
-        const appContainer = document.getElementById('app');
 
-        // --- YARDIMCI FONKSİYONLAR ---
-        const toISODateString = (date) => date.toISOString().split('T')[0];
-        const getFormattedDateTR = (date) => date.toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-
-        // --- VERİ YÖNETİMİ ---
+        // --- LOCALSTORAGE ---
         function saveData() {
-            localStorage.setItem('gorevTablosuData_vanilla_v10', JSON.stringify(state));
+            localStorage.setItem('gorevTablosuData_vanilla_v12', JSON.stringify(state));
         }
-
         function loadData() {
-            const savedData = localStorage.getItem('gorevTablosuData_vanilla_v10');
-            if (savedData) {
-                const parsedData = JSON.parse(savedData);
-                // Kullanıcı ve görevler gibi temel yapıları koru, sadece ilerlemeyi yükle
-                state.completions = parsedData.completions || {};
-                state.tasks = parsedData.tasks || initialData.tasks;
+            const saved = localStorage.getItem('gorevTablosuData_vanilla_v12');
+            if (saved) {
+                state = { ...defaultState, ...JSON.parse(saved) };
+            } else {
+                state = structuredClone(defaultState);
             }
         }
 
-        // --- PUAN HESAPLAMA ---
+        // --- YARDIMCI FONKSİYONLAR ---
+        const toISODateString = d => d.toISOString().split('T')[0];
+        const getFormattedDateTR = d => d.toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
         function calculateUserPoints() {
             const points = {};
-            state.users.forEach(user => { points[user.id] = 0; });
-            Object.values(state.completions).forEach(dailyCompletions => {
-                Object.entries(dailyCompletions).forEach(([taskId, completedUserIds]) => {
+            state.users.forEach(u => points[u.id] = 0);
+            Object.values(state.completions).forEach(dc => {
+                Object.entries(dc).forEach(([taskId, completedUserIds]) => {
                     const task = state.tasks.find(t => t.id === taskId);
                     if (task) {
-                        completedUserIds.forEach(userId => {
-                            if (points[userId] !== undefined) {
-                                points[userId] += task.points;
-                            }
+                        completedUserIds.forEach(uid => {
+                            if (points[uid] !== undefined) points[uid] += task.points;
                         });
                     }
                 });
@@ -103,142 +96,112 @@
             return points;
         }
 
-        // --- GÖREV & ÖDÜL FONKSİYONLARI ---
-        function addTask(text, points) {
-            const newTask = { id: `task_${Date.now()}`, text, points: parseInt(points, 10) || 1 };
-            state.tasks.push(newTask);
-            renderApp();
+        function getMonday(d) {
+            const date = new Date(d);
+            const day = date.getDay(), diff = date.getDate() - day + (day === 0 ? -6 : 1);
+            date.setDate(diff);
+            date.setHours(0,0,0,0);
+            return date;
         }
 
-        function deleteTask(taskId) {
-            state.tasks = state.tasks.filter(t => t.id !== taskId);
-            Object.keys(state.completions).forEach(date => {
-                delete state.completions[date][taskId];
-            });
-            renderApp();
-        }
-
-        function updateTaskPoints(taskId, newPoints) {
-            const task = state.tasks.find(t => t.id === taskId);
-            if (task) {
-                task.points = parseInt(newPoints, 10) || 1;
-                renderApp();
-            }
-        }
-
-        function toggleCompletion(taskId, userId) {
-            const dateKey = toISODateString(currentDate);
-            if (!state.completions[dateKey]) state.completions[dateKey] = {};
-            if (!state.completions[dateKey][taskId]) state.completions[dateKey][taskId] = [];
-
-            const completedBy = state.completions[dateKey][taskId];
-            const userIndex = completedBy.indexOf(userId);
-
-            if (userIndex > -1) {
-                completedBy.splice(userIndex, 1);
-            } else {
-                completedBy.push(userId);
-            }
-            renderApp();
-        }
-        
-        function changeDate(offset) {
-            currentDate.setDate(currentDate.getDate() + offset);
-            renderApp();
-        }
-
-        function claimSpecialReward(userId, reward) {
-            const userPoints = calculateUserPoints();
-            if (userPoints[userId] >= reward.cost) {
-                const rewardClaimId = `claim_${reward.id}_${Date.now()}`;
-                const today = toISODateString(new Date());
-                if (!state.completions[today]) state.completions[today] = {};
-                state.completions[today][rewardClaimId] = [userId];
-                
-                const rewardTask = { id: rewardClaimId, text: `Ödül Kullanımı: ${reward.text}`, points: -reward.cost };
-                state.tasks.push(rewardTask);
-                renderApp(); 
-            }
-        }
-        
-        function toggleManagementPanel() {
-            state.isManagementOpen = !state.isManagementOpen;
-            renderApp();
-        }
-        
-        function resetAllProgress() {
-            if (confirm("DİKKAT! Tüm kullanıcıların puanları ve tamamlanmış görevleri kalıcı olarak silinecektir. Bu işlem geri alınamaz. Emin misiniz?")) {
-                state.completions = {};
-                state.tasks = state.tasks.filter(t => !t.id.startsWith('claim_'));
-                renderApp();
-            }
-        }
-
-        // --- RENDER FONKSİYONU: TÜM EKRANI ÇİZER ---
+        // --- DOM RENDER ---
         function renderApp() {
             const userPoints = calculateUserPoints();
             const currentDateKey = toISODateString(currentDate);
             const isToday = currentDateKey === toISODateString(new Date());
 
+            // Kullanıcı puanları
+            const usersBar = state.users.map(user => `
+                <div class="text-center bg-yellow-100 text-yellow-800 rounded-lg p-3 shadow-sm flex-1 mx-1">
+                  <div class="font-bold text-xl">${user.name}</div>
+                  <div class="text-2xl font-extrabold">${userPoints[user.id] || 0} puan</div>
+                </div>
+            `).join('');
+
+            // Görev tablosu
             let tableRowsHtml = '';
             state.tasks.filter(t => !t.id.startsWith('claim_')).forEach(task => {
                 const completedBy = state.completions[currentDateKey]?.[task.id] || [];
-                let userCheckboxesHtml = '';
+                let userCheckboxes = '';
                 state.users.forEach(user => {
                     const isChecked = completedBy.includes(user.id);
-                    userCheckboxesHtml += `<td class="p-4 text-center"><input type="checkbox" class="task-checkbox h-6 w-6 accent-green-500" data-task-id="${task.id}" data-user-id="${user.id}" ${isChecked ? 'checked' : ''}></td>`;
+                    userCheckboxes += `<td class="p-4 text-center"><input type="checkbox" class="task-checkbox" data-task-id="${task.id}" data-user-id="${user.id}" ${isChecked ? "checked" : ""}></td>`;
                 });
-                tableRowsHtml += `<tr class="border-b border-slate-200"><td class="p-4 font-medium text-slate-800">${task.text}</td><td class="p-4 text-center font-bold text-blue-600">${task.points}</td>${userCheckboxesHtml}</tr>`;
+                tableRowsHtml += `<tr class="border-b">
+                    <td class="p-4 font-medium">${task.text}</td>
+                    <td class="p-4 text-center font-bold text-blue-600">${task.points}</td>
+                    ${userCheckboxes}
+                </tr>`;
             });
 
-            // Haftalık İlerleme Hesaplama
+            // Haftalık ilerleme
             let weeklyProgressHtml = '';
             state.users.forEach(user => {
                 const today = new Date();
-                const dayOfWeek = today.getDay(); 
-                const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-                const monday = new Date(today);
-                monday.setDate(today.getDate() - daysSinceMonday);
-                monday.setHours(0, 0, 0, 0);
-
+                const monday = getMonday(today);
                 let completedDays = 0;
                 const realTasks = state.tasks.filter(t => !t.id.startsWith('claim_'));
-                if (realTasks.length > 0) {
-                    for (let i = 0; i < 7; i++) {
-                        const dayToCheck = new Date(monday);
-                        dayToCheck.setDate(monday.getDate() + i);
-                        if (dayToCheck > today) break;
-                        const dateString = toISODateString(dayToCheck);
-                        let allTasksDone = true;
-                        for (const task of realTasks) {
-                            const completedBy = state.completions[dateString]?.[task.id] || [];
-                            if (!completedBy.includes(user.id)) {
-                                allTasksDone = false;
-                                break;
-                            }
+                for (let i = 0; i < 7; i++) {
+                    const dayToCheck = new Date(monday); dayToCheck.setDate(monday.getDate() + i);
+                    if (dayToCheck > today) break;
+                    const dateString = toISODateString(dayToCheck);
+                    let allTasksDone = true;
+                    for (const task of realTasks) {
+                        const completedBy = state.completions[dateString]?.[task.id] || [];
+                        if (!completedBy.includes(user.id)) {
+                            allTasksDone = false;
+                            break;
                         }
-                        if (allTasksDone) completedDays++;
                     }
+                    if (allTasksDone) completedDays++;
                 }
-                
                 const progressPercentage = (completedDays / 7) * 100;
-                const isWeekComplete = completedDays >= 7;
-
-                weeklyProgressHtml += `<div><div class="flex justify-between mb-1"><span class="text-base font-medium text-blue-700">${user.name}</span><span class="text-sm font-medium text-blue-700">${completedDays} / 7 gün</span></div><div class="w-full bg-slate-200 rounded-full h-4"><div class="h-4 rounded-full ${isWeekComplete ? 'bg-green-500' : 'bg-blue-500'}" style="width: ${progressPercentage}%"></div></div>${isWeekComplete ? `<p class="text-green-600 font-bold text-center mt-2">Tebrikler, ödülü kazandın!</p>` : ''}</div>`;
+                weeklyProgressHtml += `
+                    <div>
+                        <div class="flex justify-between mb-1"><span class="text-base font-medium text-blue-700">${user.name}</span>
+                        <span class="text-sm font-medium text-blue-700">${completedDays}/7</span></div>
+                        <div class="w-full bg-blue-200 rounded-full h-3 mb-2">
+                          <div class="bg-blue-600 h-3 rounded-full" style="width:${progressPercentage}%"></div>
+                        </div>
+                    </div>
+                `;
             });
 
-            appContainer.innerHTML = `
+            // Özel ödüller (GÜNCELLENDİ)
+            const rewardsHtml = state.users.map(user => {
+                const reward = state.specialRewards[0];
+                const canClaim = (userPoints[user.id] || 0) >= reward.cost;
+                return `<div class="flex items-center justify-between bg-white p-3 rounded-lg shadow-sm">
+                    <span class="font-semibold">${user.name}: ${reward.text} <span class="font-bold">(${reward.cost} puan)</span></span>
+                    <button class="special-reward-btn px-3 py-1 rounded ${canClaim ? "bg-indigo-500 text-white" : "bg-gray-300 text-gray-500 cursor-not-allowed"}"
+                        data-user-id="${user.id}" data-reward-id="${reward.id}" ${canClaim ? '' : 'disabled'}>
+                        Kullan
+                    </button>
+                </div>`;
+            }).join('');
+
+            // Yönetim paneli mevcut görevler
+            const taskListManage = state.tasks.filter(t => !t.id.startsWith('claim_')).map(task => `
+                <div class="flex items-center gap-2">
+                  <span class="flex-1">${task.text}</span>
+                  <input type="number" class="edit-task-points w-16 p-1 border rounded" min="1" max="99" value="${task.points}" data-task-id="${task.id}">
+                  <button class="delete-task-btn text-red-600" data-task-id="${task.id}">${ICONS.trash}</button>
+                </div>
+            `).join('');
+
+            document.getElementById('app').innerHTML = `
                 <div class="w-full">
                     <header class="text-center mb-6">${ICONS.home}<h1 class="text-3xl font-bold text-slate-800">Topuz Günlük Görev</h1></header>
                     <div class="bg-white rounded-2xl shadow-xl p-6">
-                        <div class="flex justify-center flex-wrap gap-2 mb-6">${state.users.map(user => `<div class="text-center bg-yellow-100 text-yellow-800 rounded-lg p-3 shadow-sm flex-1" style="min-width: 120px;"><p class="font-bold text-lg">${user.name}</p><p class="font-semibold text-xl">${userPoints[user.id] || 0} Puan</p></div>`).join('')}</div>
+                        <div class="flex justify-center flex-wrap gap-2 mb-6">${usersBar}</div>
                         <div class="flex items-center justify-center my-6">
-                            <button id="prev-day-btn" class="p-2 rounded-full hover:bg-slate-200"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-slate-600"><path d="m15 18-6-6 6-6"/></svg></button>
-                            <h2 class="text-xl font-semibold text-slate-700 mx-2 text-center">${getFormattedDateTR(currentDate)}</h2>
-                            <button id="next-day-btn" class="p-2 rounded-full hover:bg-slate-200 ${isToday ? 'opacity-30 cursor-not-allowed' : ''}" ${isToday ? 'disabled' : ''}><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6 text-slate-600"><path d="m9 18 6-6-6-6"/></svg></button>
+                            <button id="prev-day-btn" class="p-2 rounded-full hover:bg-slate-200">&#8592;</button>
+                            <h2 class="text-xl font-semibold mx-2">${getFormattedDateTR(currentDate)}</h2>
+                            <button id="next-day-btn" class="p-2 rounded-full hover:bg-slate-200 ${isToday ? 'opacity-30 cursor-not-allowed' : ''}" ${isToday ? 'disabled' : ''}>&#8594;</button>
                         </div>
-                        <div class="overflow-x-auto"><table class="w-full text-left border-collapse"><thead><tr class="bg-slate-200"><th class="p-4 text-lg font-semibold text-slate-700 rounded-tl-lg">Görev</th><th class="p-4 text-lg font-semibold text-slate-700 text-center">Puan</th>${state.users.map(user => `<th class="p-4 text-lg font-semibold text-slate-700 text-center">${user.name}</th>`).join('')}</tr></thead><tbody>${tableRowsHtml.length > 0 ? tableRowsHtml : `<tr><td colspan="${state.users.length + 2}" class="text-center p-8 text-slate-500">Henüz görev eklenmemiş.</td></tr>`}</tbody></table></div>
-                        
+                        <div class="overflow-x-auto"><table class="w-full text-left border-collapse"><thead>
+                            <tr class="bg-slate-200"><th class="p-4">Görev</th><th class="p-4">Puan</th>${state.users.map(u=>`<th class="p-4">${u.name}</th>`).join('')}</tr>
+                        </thead><tbody>${tableRowsHtml}</tbody></table></div>
                         <div class="mt-8 pt-6 border-t grid grid-cols-1 lg:grid-cols-2 gap-8">
                             <div class="rounded-2xl shadow-lg p-6 bg-amber-50">
                                 <h3 class="text-xl font-bold text-amber-800 mb-4 flex items-center gap-2">${ICONS.award} Haftalık İlerleme</h3>
@@ -247,89 +210,132 @@
                             </div>
                             <div class="rounded-2xl shadow-lg p-6 bg-indigo-50">
                                 <h3 class="text-xl font-bold text-indigo-800 mb-4">Özel Ödüller</h3>
-                                <div class="space-y-4">${state.users.map(user => { const reward = state.specialRewards[0]; const canClaim = (userPoints[user.id] || 0) >= reward.cost; return `<div class="flex justify-between items-center"><p class="font-semibold text-indigo-700">${user.name} için:<br><span class="text-sm font-normal">${reward.text} (${reward.cost} Puan)</span></p><button class="special-reward-btn p-2 rounded-lg font-semibold ${canClaim ? 'bg-indigo-500 text-white' : 'bg-slate-200 text-slate-500 cursor-not-allowed'}" data-user-id="${user.id}" data-reward-id="${reward.id}" ${!canClaim ? 'disabled' : ''}>Kullan</button></div>`; }).join('')}</div>
+                                <div class="space-y-4">${rewardsHtml}</div>
                             </div>
                         </div>
-
                         <div class="mt-8 pt-6 border-t">
                              <button id="toggle-management-btn" class="w-full flex justify-between items-center p-2 rounded-lg hover:bg-slate-100">
-                                <h3 class="text-xl font-bold text-slate-700">Görevleri Yönet</h3>
+                                <h3 class="text-xl font-bold">Görevleri Yönet</h3>
                                 <span class="chevron-icon ${state.isManagementOpen ? 'open' : ''}">${ICONS.chevronDown}</span>
                             </button>
                             <div id="management-panel" class="${state.isManagementOpen ? 'open' : ''} mt-4">
-                                <form id="add-task-form" class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6 items-center"><input id="new-task-text" type="text" placeholder="Yeni görev adı..." class="md:col-span-2 p-3 border-2 border-slate-200 rounded-lg" required /><input id="new-task-points" type="number" min="1" value="1" class="p-3 border-2 border-slate-200 rounded-lg" required /><button type="submit" class="p-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 flex items-center justify-center">${ICONS.plus}Ekle</button></form>
-                                <div id="task-list-management" class="space-y-2"><h4 class="text-md font-semibold text-slate-500">Mevcut Görevler</h4>${state.tasks.filter(t => !t.id.startsWith('claim_')).map(task => `<div class="flex justify-between items-center bg-slate-50 p-2 rounded-lg"><span class="text-slate-800 flex-grow">${task.text}</span><input type="number" min="1" class="edit-task-points w-20 p-1 text-center border-2 border-slate-200 rounded-lg mx-4" data-task-id="${task.id}" value="${task.points}" /><button class="delete-task-btn p-2 text-red-500 hover:bg-red-100 rounded-full" data-task-id="${task.id}">${ICONS.trash}</button></div>`).join('')}</div>
+                                <form id="add-task-form" class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6 items-center">
+                                    <input id="new-task-text" type="text" placeholder="Yeni görev adı..." class="col-span-2 p-2 border rounded" required>
+                                    <input id="new-task-points" type="number" placeholder="Puan" class="p-2 border rounded" min="1" max="99" value="1" required>
+                                    <button type="submit" class="bg-green-600 text-white rounded p-2 flex items-center gap-1">${ICONS.plus} Ekle</button>
+                                </form>
+                                <div id="task-list-management" class="space-y-2">
+                                  <h4 class="text-md font-semibold text-slate-500">Mevcut Görevler</h4>
+                                  ${taskListManage}
+                                </div>
                                 <div class="mt-6 pt-4 border-t border-red-300">
-                                     <button id="reset-all-btn" class="w-full p-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 flex items-center justify-center">${ICONS.refresh} Tüm Puanları ve İşaretleri Sıfırla</button>
+                                     <button id="reset-all-btn" class="w-full p-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 flex items-center justify-center">${ICONS.refresh} Tümünü Sıfırla</button>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
             `;
-            saveData();
         }
 
-        // --- EVENT LISTENERS (OLAY DİNLEYİCİLERİ) ---
+        // --- EVENTLER ---
         function attachEventListeners() {
-            appContainer.addEventListener('change', (e) => {
+            const app = document.getElementById('app');
+            app.addEventListener('change', (e) => {
                 if (e.target.classList.contains('task-checkbox')) {
                     const taskId = e.target.dataset.taskId;
                     const userId = e.target.dataset.userId;
                     toggleCompletion(taskId, userId);
                 }
-                if(e.target.classList.contains('edit-task-points')){
+                if (e.target.classList.contains('edit-task-points')) {
                     const taskId = e.target.dataset.taskId;
                     updateTaskPoints(taskId, e.target.value);
                 }
             });
-            
-            appContainer.addEventListener('click', (e) => {
-                const deleteBtn = e.target.closest('.delete-task-btn');
-                const prevDayBtn = e.target.closest('#prev-day-btn');
-                const nextDayBtn = e.target.closest('#next-day-btn');
-                const specialRewardBtn = e.target.closest('.special-reward-btn');
-                const managementToggleBtn = e.target.closest('#toggle-management-btn');
-                const resetBtn = e.target.closest('#reset-all-btn');
 
-                if (deleteBtn) {
-                    const taskId = deleteBtn.dataset.taskId;
-                    const taskText = state.tasks.find(t => t.id === taskId)?.text || '';
-                    if (confirm(`'${taskText}' görevini silmek istediğinizden emin misiniz?`)) {
-                       deleteTask(taskId);
-                    }
+            app.addEventListener('click', (e) => {
+                if (e.target.closest('.delete-task-btn')) {
+                    const taskId = e.target.closest('.delete-task-btn').dataset.taskId;
+                    if (confirm('Görev silinsin mi?')) deleteTask(taskId);
                 }
-                if (prevDayBtn) changeDate(-1);
-                if (nextDayBtn) changeDate(1);
-                if(specialRewardBtn) {
-                    const userId = specialRewardBtn.dataset.userId;
-                    const rewardId = specialRewardBtn.dataset.rewardId;
+                if (e.target.closest('#prev-day-btn')) changeDate(-1);
+                if (e.target.closest('#next-day-btn')) changeDate(1);
+                if (e.target.closest('.special-reward-btn')) {
+                    const btn = e.target.closest('.special-reward-btn');
+                    const userId = btn.dataset.userId, rewardId = btn.dataset.rewardId;
                     const reward = state.specialRewards.find(r => r.id === rewardId);
-                    if(confirm(`${reward.cost} puan kullanarak "${reward.text}" ödülünü almak istediğinizden emin misiniz?`)){
+                    if (reward && confirm(`${reward.cost} puan ile "${reward.text}" ödülünü almak istiyor musun?`)) {
                         claimSpecialReward(userId, reward);
                     }
                 }
-                if(managementToggleBtn) {
-                    toggleManagementPanel();
-                }
-                if(resetBtn) {
-                    resetAllProgress();
-                }
+                if (e.target.closest('#toggle-management-btn')) toggleManagementPanel();
+                if (e.target.closest('#reset-all-btn')) resetAllProgress();
             });
 
-            appContainer.addEventListener('submit', (e) => {
+            app.addEventListener('submit', (e) => {
                 if (e.target.id === 'add-task-form') {
                     e.preventDefault();
-                    const textInput = document.getElementById('new-task-text');
-                    const pointsInput = document.getElementById('new-task-points');
-                    if (textInput.value.trim()) {
-                        addTask(textInput.value.trim(), pointsInput.value);
-                    }
+                    const text = document.getElementById('new-task-text').value.trim();
+                    const points = document.getElementById('new-task-points').value;
+                    if (text) addTask(text, points);
                 }
             });
         }
 
-        // --- UYGULAMAYI BAŞLATMA ---
+        // --- STATE DEĞİŞİKLİKLERİ ---
+        function addTask(text, points) {
+            state.tasks.push({ id: `task_${Date.now()}`, text, points: parseInt(points) || 1 });
+            saveData(); renderApp();
+        }
+        function deleteTask(taskId) {
+            state.tasks = state.tasks.filter(t => t.id !== taskId);
+            Object.keys(state.completions).forEach(date => {
+                if (state.completions[date][taskId]) delete state.completions[date][taskId];
+            });
+            saveData(); renderApp();
+        }
+        function updateTaskPoints(taskId, newPoints) {
+            const task = state.tasks.find(t => t.id === taskId);
+            if (task) task.points = parseInt(newPoints) || 1;
+            saveData(); renderApp();
+        }
+        function toggleCompletion(taskId, userId) {
+            const dateKey = toISODateString(currentDate);
+            if (!state.completions[dateKey]) state.completions[dateKey] = {};
+            if (!state.completions[dateKey][taskId]) state.completions[dateKey][taskId] = [];
+            const arr = state.completions[dateKey][taskId];
+            const i = arr.indexOf(userId);
+            if (i > -1) arr.splice(i, 1); else arr.push(userId);
+            saveData(); renderApp();
+        }
+        function changeDate(offset) {
+            currentDate.setDate(currentDate.getDate() + offset);
+            renderApp();
+        }
+        function claimSpecialReward(userId, reward) {
+            const userPoints = calculateUserPoints();
+            if (userPoints[userId] >= reward.cost) {
+                const rewardClaimId = `claim_${reward.id}_${Date.now()}`;
+                const today = toISODateString(new Date());
+                if (!state.completions[today]) state.completions[today] = {};
+                state.completions[today][rewardClaimId] = [userId];
+                state.tasks.push({ id: rewardClaimId, text: `Ödül Kullanımı: ${reward.text}`, points: -reward.cost });
+                saveData(); renderApp();
+            }
+        }
+        function toggleManagementPanel() {
+            state.isManagementOpen = !state.isManagementOpen;
+            saveData(); renderApp();
+        }
+        function resetAllProgress() {
+            if (confirm("Tüm puanlar ve tamamlanmış görevler silinecek. Emin misin?")) {
+                state.completions = {};
+                state.tasks = state.tasks.filter(t => !t.id.startsWith('claim_'));
+                saveData(); renderApp();
+            }
+        }
+
+        // --- BAŞLAT ---
         document.addEventListener('DOMContentLoaded', () => {
             loadData();
             renderApp();
