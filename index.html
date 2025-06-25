@@ -12,6 +12,8 @@
         .icon { width: 1.5rem; height: 1.5rem; }
         .icon-lg { width: 3rem; height: 3rem; }
         .icon-sm { width: 1rem; height: 1rem; }
+        .rotate-180 { transform: rotate(180deg); }
+        .transition-transform { transition: transform 0.3s ease; }
     </style>
 </head>
 <body class="bg-slate-100">
@@ -27,6 +29,7 @@
             plus: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon mr-2"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>`,
             trash: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon-sm"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>`,
             award: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11"/></svg>`,
+            chevronDown: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon transition-transform"><path d="m6 9 6 6 6-6"/></svg>`,
         };
 
         // --- TEMEL VERİ YAPISI ---
@@ -44,6 +47,7 @@
             specialRewards: [
                 { id: 'reward1', text: '30 Dakika Bilgisayar Hakkı', cost: 50 }
             ],
+            isManagementOpen: false, // Yönetim panelinin açık olup olmadığını tutar
         };
         
         let currentDate = new Date();
@@ -55,11 +59,11 @@
 
         // --- VERİ YÖNETİMİ ---
         function saveData() {
-            localStorage.setItem('gorevTablosuData_vanilla_v7', JSON.stringify(state));
+            localStorage.setItem('gorevTablosuData_vanilla_v8', JSON.stringify(state));
         }
 
         function loadData() {
-            const savedData = localStorage.getItem('gorevTablosuData_vanilla_v7');
+            const savedData = localStorage.getItem('gorevTablosuData_vanilla_v8');
             if (savedData) {
                 const parsedData = JSON.parse(savedData);
                 Object.assign(state, parsedData);
@@ -144,6 +148,11 @@
                 renderApp(); 
             }
         }
+        
+        function toggleManagementPanel() {
+            state.isManagementOpen = !state.isManagementOpen;
+            renderApp();
+        }
 
         // --- RENDER FONKSİYONU: TÜM EKRANI ÇİZER ---
         function renderApp() {
@@ -211,14 +220,25 @@
                         <div class="overflow-x-auto"><table class="w-full text-left border-collapse"><thead><tr class="bg-slate-200"><th class="p-4 text-lg font-semibold text-slate-700 rounded-tl-lg">Görev</th><th class="p-4 text-lg font-semibold text-slate-700 text-center">Puan</th>${state.users.map(user => `<th class="p-4 text-lg font-semibold text-slate-700 text-center">${user.name}</th>`).join('')}</tr></thead><tbody>${tableRowsHtml.length > 0 ? tableRowsHtml : `<tr><td colspan="${state.users.length + 2}" class="text-center p-8 text-slate-500">Henüz görev eklenmemiş.</td></tr>`}</tbody></table></div>
                         
                         <div class="mt-8 pt-6 border-t grid grid-cols-1 lg:grid-cols-2 gap-8">
-                            <div>
-                                <h3 class="text-xl font-bold text-slate-700 mb-4">Görevleri Yönet</h3>
+                            <div class="rounded-2xl shadow-lg p-6 bg-amber-50">
+                                <h3 class="text-xl font-bold text-amber-800 mb-4 flex items-center gap-2">${ICONS.award} Haftalık İlerleme</h3>
+                                <p class="text-amber-700 mb-4">Haftalık Ödül: <span class="font-bold">${state.weeklyReward}</span></p>
+                                <div class="space-y-4">${weeklyProgressHtml}</div>
+                            </div>
+                            <div class="rounded-2xl shadow-lg p-6 bg-indigo-50">
+                                <h3 class="text-xl font-bold text-indigo-800 mb-4">Özel Ödüller</h3>
+                                <div class="space-y-4">${state.users.map(user => { const reward = state.specialRewards[0]; const canClaim = (userPoints[user.id] || 0) >= reward.cost; return `<div class="flex justify-between items-center"><p class="font-semibold text-indigo-700">${user.name} için:<br><span class="text-sm font-normal">${reward.text} (${reward.cost} Puan)</span></p><button class="special-reward-btn p-2 rounded-lg font-semibold ${canClaim ? 'bg-indigo-500 text-white' : 'bg-slate-200 text-slate-500 cursor-not-allowed'}" data-user-id="${user.id}" data-reward-id="${reward.id}" ${!canClaim ? 'disabled' : ''}>Kullan</button></div>`; }).join('')}</div>
+                            </div>
+                        </div>
+
+                        <div class="mt-8 pt-6 border-t">
+                             <button id="toggle-management-btn" class="w-full flex justify-between items-center p-2 rounded-lg hover:bg-slate-100">
+                                <h3 class="text-xl font-bold text-slate-700">Görevleri Yönet</h3>
+                                <span class="chevron-icon ${state.isManagementOpen ? 'rotate-180' : ''}">${ICONS.chevronDown}</span>
+                            </button>
+                            <div id="management-panel" class="${state.isManagementOpen ? '' : 'hidden'} mt-4">
                                 <form id="add-task-form" class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-6 items-center"><input id="new-task-text" type="text" placeholder="Yeni görev adı..." class="md:col-span-2 p-3 border-2 border-slate-200 rounded-lg" required /><input id="new-task-points" type="number" min="1" value="1" class="p-3 border-2 border-slate-200 rounded-lg" required /><button type="submit" class="p-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 flex items-center justify-center">${ICONS.plus}Ekle</button></form>
                                 <div id="task-list-management" class="space-y-2"><h4 class="text-md font-semibold text-slate-500">Mevcut Görevler</h4>${state.tasks.filter(t => !t.id.startsWith('claim_')).map(task => `<div class="flex justify-between items-center bg-slate-50 p-2 rounded-lg"><span class="text-slate-800 flex-grow">${task.text}</span><input type="number" min="1" class="edit-task-points w-20 p-1 text-center border-2 border-slate-200 rounded-lg mx-4" data-task-id="${task.id}" value="${task.points}" /><button class="delete-task-btn p-2 text-red-500 hover:bg-red-100 rounded-full" data-task-id="${task.id}">${ICONS.trash}</button></div>`).join('')}</div>
-                            </div>
-                            <div>
-                                <div class="rounded-2xl shadow-lg p-6 bg-amber-50 mb-6"><h3 class="text-xl font-bold text-amber-800 mb-4 flex items-center gap-2">${ICONS.award} Haftalık İlerleme</h3><p class="text-amber-700 mb-4">Haftalık Ödül: <span class="font-bold">${state.weeklyReward}</span></p><div class="space-y-4">${weeklyProgressHtml}</div></div>
-                                <div class="rounded-2xl shadow-lg p-6 bg-indigo-50"><h3 class="text-xl font-bold text-indigo-800 mb-4">Özel Ödüller</h3><div class="space-y-4">${state.users.map(user => { const reward = state.specialRewards[0]; const canClaim = (userPoints[user.id] || 0) >= reward.cost; return `<div class="flex justify-between items-center"><p class="font-semibold text-indigo-700">${user.name} için:<br><span class="text-sm font-normal">${reward.text} (${reward.cost} Puan)</span></p><button class="special-reward-btn p-2 rounded-lg font-semibold ${canClaim ? 'bg-indigo-500 text-white' : 'bg-slate-200 text-slate-500 cursor-not-allowed'}" data-user-id="${user.id}" data-reward-id="${reward.id}" ${!canClaim ? 'disabled' : ''}>Kullan</button></div>`; }).join('')}</div></div>
                             </div>
                         </div>
                     </div>
@@ -246,6 +266,7 @@
                 const prevDayBtn = e.target.closest('#prev-day-btn');
                 const nextDayBtn = e.target.closest('#next-day-btn');
                 const specialRewardBtn = e.target.closest('.special-reward-btn');
+                const managementToggleBtn = e.target.closest('#toggle-management-btn');
 
                 if (deleteBtn) {
                     const taskId = deleteBtn.dataset.taskId;
@@ -263,6 +284,9 @@
                     if(confirm(`${reward.cost} puan kullanarak "${reward.text}" ödülünü almak istediğinizden emin misiniz?`)){
                         claimSpecialReward(userId, reward);
                     }
+                }
+                if(managementToggleBtn) {
+                    toggleManagementPanel();
                 }
             });
 
