@@ -5,13 +5,29 @@ import { getFirestore, doc, setDoc, onSnapshot } from 'firebase/firestore';
 import { CheckCircle, Star, Award, BookOpen, Smile, BrainCircuit, Plus, Trash2, Users, Settings, AlertTriangle, ShieldCheck } from 'lucide-react';
 
 // --- Firebase Konfigürasyonu ---
-const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+// ÖNEMLİ: Bu uygulamayı yayınlamak için bu bölümü kendi Firebase proje
+// bilgilerinizle doldurmanız GEREKMEKTEDİR.
+// 1. https://console.firebase.google.com/ adresine gidin.
+// 2. Yeni bir proje oluşturun ("Add project").
+// 3. Proje panosunda, web uygulaması eklemek için </> simgesine tıklayın.
+// 4. Uygulamanıza bir isim verin ve "Register app" butonuna tıklayın.
+// 5. Karşınıza çıkan `firebaseConfig` nesnesini kopyalayıp aşağıdaki boş nesnenin yerine yapıştırın.
+const firebaseConfig = {
+    // Kopyalanan yapılandırma kodunu buraya yapıştırın. Örneğin:
+    // apiKey: "AIzaSy...",
+    // authDomain: "proje-adi.firebaseapp.com",
+    // projectId: "proje-adi",
+    // storageBucket: "proje-adi.appspot.com",
+    // messagingSenderId: "...",
+    // appId: "..."
+};
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'topuz-ailesi-gorev-macerasi';
 
 // --- Firebase Servislerini Başlatma ---
 let app, auth, db;
 try {
-    if (Object.keys(firebaseConfig).length > 0) {
+    // Sadece config doluysa Firebase'i başlat
+    if (firebaseConfig.apiKey) {
         app = initializeApp(firebaseConfig);
         auth = getAuth(app);
         db = getFirestore(app);
@@ -33,7 +49,7 @@ export default function App() {
 
     useEffect(() => {
         if (!app) {
-            setError("Firebase yapılandırması bulunamadı. Uygulama başlatılamıyor.");
+            setError("Firebase yapılandırması eksik. Lütfen koddaki `firebaseConfig` nesnesini kendi proje bilgilerinizle doldurun.");
             setLoading(false);
         }
     }, []);
@@ -41,11 +57,11 @@ export default function App() {
     const dataDocRef = useMemo(() => {
         if (!db) return null;
         return doc(db, 'artifacts', appId, 'public', 'data', 'gorevMacerasi', 'main');
-    }, []);
+    }, [appId]);
 
     useEffect(() => {
-        if (!dataDocRef) {
-            if (db) setLoading(false);
+        if (!auth) {
+            if (!error) setLoading(false);
             return;
         }
 
@@ -54,10 +70,11 @@ export default function App() {
                 try {
                     await signInAnonymously(auth);
                 } catch (authError) {
-                    setError("Oturum açılamadı.");
+                    setError("Firebase oturumu açılamadı. Yapılandırmanızı kontrol edin.");
                     setLoading(false);
                 }
             } else {
+                 if (!dataDocRef) return;
                  const unsub = onSnapshot(dataDocRef, (docSnap) => {
                     if (docSnap.exists()) {
                         setAppData(docSnap.data());
@@ -75,14 +92,14 @@ export default function App() {
                     }
                     setLoading(false);
                 }, (firestoreError) => {
-                    setError("Veri alınırken hata oluştu.");
+                    setError("Veri alınırken hata oluştu: " + firestoreError.message);
                     setLoading(false);
                 });
                 return () => unsub();
             }
         });
         return () => authSub();
-    }, [dataDocRef]);
+    }, [dataDocRef, error]);
 
     const updateFirestore = async (newData) => {
         if (!dataDocRef) return;
