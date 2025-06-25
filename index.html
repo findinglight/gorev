@@ -152,10 +152,12 @@
                 if (!state.completions[today]) state.completions[today] = {};
                 state.completions[today][rewardClaimId] = [userId];
 
-                const tempRewardTask = { id: rewardClaimId, text: `Ödül Kullanımı: ${reward.text}`, points: -reward.cost };
-                state.tasks.push(tempRewardTask);
-                renderApp(); 
-                state.tasks = state.tasks.filter(t => t.id !== rewardClaimId);
+                // Puan düşürmek için kalıcı, negatif puanlı bir görev oluştur.
+                // Bu görev UI'da gösterilmeyecek ama puan hesaplamasında kullanılacak.
+                const rewardTask = { id: rewardClaimId, text: `Ödül Kullanımı: ${reward.text}`, points: -reward.cost };
+                state.tasks.push(rewardTask);
+                
+                // Değişikliği kaydetmek ve arayüzü güncellemek için renderApp'i çağır.
                 renderApp(); 
             }
         }
