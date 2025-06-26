@@ -49,7 +49,7 @@
                 { id: 'task5', text: 'Kuran', points: 10 }
             ],
             punishments: [{ id: 'punish1', text: 'Oda Dağınıklığı', points: 5 }],
-            transactions: {}, // Format: { 'YYYY-MM-DD': [{type: 'task'/'punish'/'reward', id: '...', userId: '...'}] }
+            transactions: {}, 
             weeklyReward: 'Sinema',
             specialRewards: [{ id: 'reward1', text: '30 Dakika Bilgisayar Hakkı', cost: 50 }],
             isManagementOpen: false,
@@ -62,9 +62,9 @@
         const toISODateString = d => d.toISOString().split('T')[0];
         const getFormattedDateTR = d => d.toLocaleDateString('tr-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-        function saveData() { localStorage.setItem('gorevTablosuData_v13', JSON.stringify(state)); }
+        function saveData() { localStorage.setItem('gorevTablosuData_v14', JSON.stringify(state)); }
         function loadData() {
-            const saved = localStorage.getItem('gorevTablosuData_v13');
+            const saved = localStorage.getItem('gorevTablosuData_v14');
             state = saved ? { ...defaultState, ...JSON.parse(saved) } : JSON.parse(JSON.stringify(defaultState));
             if (state.isManagementOpen === undefined) state.isManagementOpen = false;
         }
@@ -165,18 +165,22 @@
                 tableRowsHtml += `<tr class="border-b"><td class="p-4 font-medium">${task.text}</td><td class="p-4 text-center font-bold text-blue-600">${task.points}</td>${userCheckboxes}</tr>`;
             });
 
+            // Haftalık İlerleme Hesaplama
             let weeklyProgressHtml = '';
             state.users.forEach(user => {
                 const monday = getMonday(new Date()); let completedDays = 0; const realTasks = state.tasks;
+                const requiredTasks = Math.max(1, realTasks.length - 1);
+
                 if (realTasks.length > 0) for (let i = 0; i < 7; i++) {
                     const day = new Date(monday); day.setDate(monday.getDate() + i);
                     if (day > new Date()) break;
-                    let allDone = true;
-                    for(const task of realTasks) {
-                        const dailyTxs = state.transactions[toISODateString(day)] || [];
-                        if (!dailyTxs.some(tx => tx.type === 'task' && tx.id === task.id && tx.userId === user.id)) { allDone = false; break; }
+                    
+                    const dailyTxs = state.transactions[toISODateString(day)] || [];
+                    const tasksDoneCount = dailyTxs.filter(tx => tx.type === 'task' && tx.userId === user.id).length;
+
+                    if (tasksDoneCount >= requiredTasks) {
+                        completedDays++;
                     }
-                    if (allDone) completedDays++;
                 }
                 const progress = (completedDays / 7) * 100;
                 weeklyProgressHtml += `<div><div class="flex justify-between mb-1"><span class="text-base font-medium">${user.name}</span><span>${completedDays}/7</span></div><div class="w-full bg-slate-200 rounded-full h-3"><div class="bg-blue-600 h-3 rounded-full" style="width:${progress}%"></div></div></div>`;
